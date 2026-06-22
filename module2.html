@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GuestGuard Inspector Training — Module 2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=Inconsolata:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="player.css">
+<style>
+/* Chapter selector — one-line strip in the right-hand sidebar.
+   player.js is unchanged except for the flag-gated intro card; player.css untouched. */
+.bul-side{ display:flex; flex-direction:column; }
+.bul-inner{ height:auto; flex:1 1 auto; min-height:0; }
+.chapter-nav{ flex:0 0 auto; padding: clamp(14px,1.5vw,22px) clamp(18px,1.8vw,30px) 0; }
+.chapter-nav-lbl{ font-family:var(--mono); font-size:.62rem; letter-spacing:.22em; color:var(--gold); margin-bottom:8px; }
+body.light-mode .chapter-nav-lbl{ color:var(--teal); }
+.chapter-nav-grid{ display:flex; flex-wrap:nowrap; gap:6px; padding-bottom: clamp(12px,1.4vh,18px);
+  border-bottom:1px solid color-mix(in srgb, var(--gold) 28%, var(--border)); }
+body.light-mode .chapter-nav-grid{ border-bottom-color: color-mix(in srgb, var(--teal) 28%, var(--border)); }
+.chapter-btn{ flex:1 1 0; min-width:0; display:flex; align-items:center; gap:7px;
+  background:var(--s2); border:1px solid var(--border); border-radius:9px; padding:7px 8px;
+  cursor:pointer; color:var(--ink); text-align:left;
+  transition: border-color .2s, background-color .2s, transform .08s; }
+.chapter-btn:hover{ border-color:var(--gold); }
+body.light-mode .chapter-btn:hover{ border-color:var(--teal); }
+.chapter-btn:active{ transform:translateY(1px); }
+.chapter-btn.active{ border-color:var(--gold); background:var(--gold-dim); box-shadow: inset 0 0 0 1px var(--gold); }
+body.light-mode .chapter-btn.active{ border-color:var(--teal); background:var(--teal-dim); box-shadow: inset 0 0 0 1px var(--teal); }
+.chapter-btn-num{ font-family:var(--mono); font-weight:700; font-size:.72rem; width:1.55em; height:1.55em; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; border-radius:5px; background:var(--s3); color:var(--ink-mid); }
+.chapter-btn.active .chapter-btn-num{ background:var(--gold); color:var(--bg); }
+body.light-mode .chapter-btn.active .chapter-btn-num{ background:var(--teal); color:#fff; }
+.chapter-btn-txt{ display:flex; flex-direction:column; line-height:1.1; min-width:0; }
+.chapter-btn-name{ font-size:.76rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chapter-btn-dur{ font-family:var(--mono); font-size:.6rem; color:var(--ink-mid); margin-top:1px; }
+.chapter-btn.active .chapter-btn-name{ color:var(--gold); }
+body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
+.chapter-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+@media (max-width:620px){ .chapter-nav-grid{ flex-wrap:wrap; } .chapter-btn{ flex:1 1 40%; } }
+</style>
+</head>
+<body>
+
+<script type="application/json" id="vbData">{}</script>
+
+<header class="hdr">
+  <img id="logoImg" src="https://guestguard-platform.vercel.app/_next/image?url=%2Fgg_logo_small.png&w=640&q=75&dpl=dpl_DveWjYKd9Bi3M3CYp1G8uPrAWQZY" alt="GuestGuard Logo" class="hdr-logo">
+  <div class="hdr-sep"></div>
+  <div class="hdr-title" id="vbTitle">GuestGuard Inspector Training — Module 2</div>
+  <div class="hdr-tag">MODULE 2</div>
+  <div class="theme-toggle">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" class="toggle-icon sun">
+      <circle cx="12" cy="12" r="4"></circle>
+      <path d="M12 2v2"></path>
+      <path d="M12 20v2"></path>
+      <path d="m4.93 4.93 1.41 1.41"></path>
+      <path d="m17.66 17.66 1.41 1.41"></path>
+      <path d="M2 12h2"></path>
+      <path d="M20 12h2"></path>
+      <path d="m6.34 17.66-1.41 1.41"></path>
+      <path d="m19.07 4.93-1.41 1.41"></path>
+    </svg>
+    <div class="toggle-switch" id="themeToggle">
+      <div class="toggle-slider"></div>
+    </div>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" class="toggle-icon moon">
+      <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path>
+    </svg>
+  </div>
+</header>
+
+<div class="vb-wrap">
+  <div class="vid-side">
+    <div class="vid-box" id="vidBox">
+      <div class="vid-pholder" id="vidPlaceholder" style="display: none;">
+        <div class="vid-ph-icon-wrap">
+          <div class="vid-ph-ring"></div>
+          <div class="vid-ph-ring"></div>
+          <div class="vid-ph-ring"></div>
+          <div class="vid-ph-icon">▶</div>
+        </div>
+        <div class="vid-ph-content">
+          <div class="vid-ph-title">Inspector Training Program</div>
+          <div class="vid-ph-desc">Module 2 covers the complete room-by-room inspection rubric. Click to begin.</div>
+          <div class="vid-ph-stats">
+            <div class="vid-ph-stat">
+              <div class="vid-ph-stat-val">28:05</div>
+              <div class="vid-ph-stat-lbl">DURATION</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <video id="trainingVideo" playsinline preload="metadata" style="width: 100%; height: 100%; object-fit: cover; background: #000; z-index: 2; display: block; transform: scaleX(-1);">
+        <source src="https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <!-- NEW: Numbered-list callout overlay -->
+      <div class="video-callout" id="videoCallout" aria-hidden="true">
+        <div class="video-callout-card">
+          <div class="video-callout-title" id="videoCalloutTitle"></div>
+          <ol class="video-callout-list" id="videoCalloutList"></ol>
+        </div>
+      </div>
+      <!-- NEW: Section transition overlay -->
+      <div class="section-transition-overlay" id="sectionTransition">
+        <div class="section-transition-label" id="transitionLabel">NEXT SECTION</div>
+        <div class="section-transition-title" id="transitionTitle">Access, Parking & Emergency Egress</div>
+        <div class="section-transition-accent"></div>
+      </div>
+      <!-- NEW: Hover overlay for pause icon -->
+      <div class="vid-hover-overlay" id="hoverOverlay">
+        <div class="vid-hover-icon" id="hoverIcon">▶</div>
+      </div>
+    </div>
+    <div class="vid-subs">
+      <div class="vid-subs-stack" id="subsStack">
+        <div class="vid-subs-text" id="subsText">Ready to begin</div>
+      </div>
+    </div>
+    <div class="scrub" id="scrubBar">
+      <div class="scrub-max" id="scrubMax" style="width: 0%;"></div>
+      <div class="scrub-fill" id="scrubFill" style="width: 0%;"></div>
+      <div class="scrub-dot" id="scrubDot" style="left: 0%;"></div>
+    </div>
+    <div class="vid-controls">
+      <button class="vid-play-btn" id="playBtn" aria-label="Play/Pause">▶</button>
+      <button class="vid-rewind-btn" id="rewindBtn" aria-label="Rewind 10 seconds" title="Rewind 10 seconds">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 4 A 8 8 0 1 1 4 12"></path>
+          <polyline points="11 1 11 4 14 4"></polyline>
+        </svg>
+        <span class="vid-rewind-num">10</span>
+      </button>
+      <span class="vid-time" id="tDisp">0:00</span>
+      <div class="vid-sep"></div>
+      <span class="vid-segment" id="segLbl">Ready to begin</span>
+      <div class="sync-tools" title="Testing only: positive values make captions/callouts appear later. Apply restarts the video.">
+        <span class="sync-tools-label">Sync test</span>
+        <label class="sync-field">Subs <input id="subtitleOffsetInput" type="number" step="0.05" value="-0.50"></label>
+        <label class="sync-field">Lists <input id="calloutOffsetInput" type="number" step="0.05" value="0.00"></label>
+        <button class="sync-btn" id="applySyncBtn" type="button">Apply + restart</button>
+        <span class="sync-note">+ = later</span>
+      </div>
+    </div>
+  </div>
+  <div class="bul-side">
+    <div class="chapter-nav" id="chapterNav"></div>
+    <div class="bul-inner" id="bulInner">
+      <div class="sec-hdr">
+        <div class="sec-lbl" id="secLbl">ROOM-BY-ROOM INSPECTION RUBRIC</div>
+        <div class="sec-name" id="secName">GuestGuard Inspector Training — Module 2</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="theme.js"></script>
+<script type="application/json" id="allChapters">{"chapters":[{"n":1,"label":"Intro & Outside","short":"Outside","durationDisp":"4:10","videoSrc":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part1.mp4","vbData":{"title":"Module 2 \u2014 Intro & Outside","section":"PART 1 OF 5 \u00b7 ROOM-BY-ROOM","videoDuration":250.267,"groups":[{"label":"INTRO","name":"Intro","triggerTime":0.0,"bullets":["Module overview: what inspectors will learn in the room-by-room rubric.","The rubric is organized into repeated categories used in each room.","The module explains what to check, what to photograph, and how to document issues."],"actualStartTime":1.053},{"label":"OUTSIDE","name":"Outside \u2013 Access, Accessibility & Safety","triggerTime":51.612,"bullets":["Start the inspection before entering the property; the exterior gives an early read on host maintenance.","Check walkways for obstructions and legible signage so guests have safe emergency egress.","Flag missing signage so the host can correct it before certification.","Verify accessible parking: within 30 feet of the front door and at least 25 inches of clearance on each side.","Document lockbox or digital-coded lock, off-street parking, lighting, handrails, trip hazards, clear paths, and trimmed shrubbery."],"actualStartTime":51.612},{"label":"OUTSIDE","name":"Outside \u2013 Outdoor Features, Utilities & Pets","triggerTime":150.254,"bullets":["Conditional outdoor questions begin here, starting with whether the property has a pool.","For pools, check posted rules, locked chemicals, visual condition, fencing, gate access, and whether the gate locks.","For hot tubs, check rules, chemical storage, general condition, and whether the cover is on when not in use.","Check guest-accessible outdoor cooking equipment, patio areas, GFCI outlets, exterior cleanliness, and obvious hazards.","If pets are allowed, confirm nearby walking access, fenced dog space, and pet waste disposal facilities."],"actualStartTime":150.254}]},"player":{"vtt":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part1.vtt","subtitleDelay":-0.5,"calloutDelay":0,"persistOffsets":true,"introCard":{"label":"PART 1 OF 5","title":"Intro & Outside"},"callouts":[{"start":24.064,"end":40.057,"title":"8 Rubric Areas","itemStarts":[26.723,27.683,29.763,30.47,31.471,32.567,34.243,35.557],"items":["Exterior","Basement / Maintenance Room","Kitchen","Bathroom","Hallway","Bedroom","Common Room","Overall Property Section"]},{"start":40.612,"end":50.911,"title":"Focus Categories","itemStarts":[43.814,45.163,45.787,46.411],"items":["Safety & Security","Cleanliness","Accessibility","And so on"]},{"start":67.731,"end":77.092,"title":"Exterior \u2013 Walkways","itemStarts":[70.964,72.592],"items":["Clear of obstructions","Marked with legible signage"]},{"start":85.991,"end":99.254,"title":"Exterior \u2013 Parking","itemStarts":[91.304,94.754],"items":["Within 30 feet of front door","25 inches clearance each side"]},{"start":107.991,"end":122.338,"title":"Exterior \u2013 Property Access","itemStarts":[110.737,113.281,116.337,117.838],"items":["Lockbox or digital-coded lock","Take a photo","Off-street parking available","Well-lit parking"]},{"start":124.671,"end":145.203,"title":"Exterior \u2013 Safety & Security","itemStarts":[128.381,131.604,138.131,140.703],"items":["Stair handrails","Trip hazards on walkways","Clear paths at inspection","Trimmed shrubbery"]},{"start":164.225,"end":174.965,"title":"Pool Checklist","itemStarts":[165.963,166.997,169.833,173.196],"items":["Rules posted","Chemicals locked away","General visual standards","Adequate fencing"]},{"start":175.045,"end":186.165,"title":"Pool Fence Details","itemStarts":[176.645,177.797,178.955,181.058,182.271],"items":["Fence height","Largest vertical gaps","Largest horizontal gaps","Gate present","Gate locks"]},{"start":186.245,"end":198.523,"title":"Hot Tub Checklist","itemStarts":[188.865,189.835,191.52,194.023],"items":["Rules posted","Chemicals stored properly","General condition","Cover on when not in use"]},{"start":199.836,"end":209.901,"title":"Outdoor Features","itemStarts":[201.996,203.312,205.401],"items":["Outdoor cooking equipment","Patio area","Visual standards if guest-accessible"]},{"start":210.495,"end":229.603,"title":"Exterior Utilities & Cleanliness","itemStarts":[215.995,219.356,223.069,225.103],"items":["GFCI outlets in wet outdoor areas","Overall visual assessment","Clean and well-maintained","Free of obvious hazards"]},{"start":236.895,"end":251.251,"title":"Pet-Friendly Exterior Questions","itemStarts":[240.247,243.835,246.751],"items":["Easy walking access nearby","Fenced space for dogs","Pet waste disposal facilities"]}]}},{"n":2,"label":"Basement & Kitchen","short":"Basement","durationDisp":"5:13","videoSrc":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part2.mp4","vbData":{"title":"Module 2 \u2014 Basement & Kitchen","section":"PART 2 OF 5 \u00b7 ROOM-BY-ROOM","videoDuration":312.7,"groups":[{"label":"BASEMENT & MAINTENANCE ROOM","name":"Basement & Maintenance Room","triggerTime":0.0,"bullets":["Treat this room as the mechanical heart of the property, even though guests rarely spend time there.","Inspect the electrical breaker box, visible wiring, extension cords, power strips, cover plates, and visible safety issues.","Check flammable gases or materials such as heating oil, paints, solvents, and cleaning products for proper storage and leaks.","Document heating systems, furnace filters, boilers, and any water leak or freeze detectors.","Check for mold, moisture growth, water or air leaks, rodent or insect signs, mitigation records, odors, and overall condition."],"actualStartTime":0.499},{"label":"KITCHEN","name":"Kitchen","triggerTime":149.889,"bullets":["The kitchen is the highest fire-risk room in the house, so emergency and safety checks matter here.","Confirm wiring, exits, signage, fire extinguisher presence, ABC rating, visibility, and required photographs.","Check alarm battery requirements, hidden cameras, mold or moisture growth, and water or air leaks.","Inspect utilities and appliances, including sink operation, refrigerator, freezer, oven, stove, dishwasher, coffee maker, and microwave.","Finish with pest check, odor check, floor type, and overall visual assessment using the same standard as other rooms."],"actualStartTime":149.889}]},"player":{"vtt":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part2.vtt","subtitleDelay":-0.5,"calloutDelay":0,"persistOffsets":true,"introCard":{"label":"PART 2 OF 5","title":"Basement & Kitchen"},"callouts":[{"start":12.558,"end":22.388,"title":"Basement Electrical","itemStarts":[16.284,16.728,18.0,19.256,21.288],"items":["Labeled box","Accessible box","Cover plates","No visible safety violations","Take a photo"]},{"start":22.468,"end":32.616,"title":"Basement Wiring","itemStarts":[24.788,25.868,28.116],"items":["No exposed wires","No daisy-chained extension cords","Surge-protected power strips only"]},{"start":44.075,"end":52.788,"title":"Flammable Materials Examples","itemStarts":[46.161,47.008,47.648,48.288],"items":["Heating oil","Paints","Solvents","Cleaning products"]},{"start":69.208,"end":77.645,"title":"Heating System Types","itemStarts":[70.618,71.248,71.878,72.698,73.145],"items":["Furnace","Boiler","Geothermal","Radiant","Space heaters"]},{"start":79.338,"end":90.53,"title":"Heating Follow-Up Questions","itemStarts":[82.411,86.03],"items":["Furnace filter standards","Boiler standards"]},{"start":102.638,"end":152.068,"title":"Basement Safety & Cleanliness","itemStarts":[108.525,120.547,128.778,140.398,144.331,147.568],"items":["Mold / moisture growth","Water or air leaks","Rodent or insect signs","Mitigation program with records","Free of unwanted odors","Overall visual assessment"]},{"start":160.658,"end":172.178,"title":"Kitchen Emergency Evacuation","itemStarts":[164.038,164.928,166.138,167.678],"items":["Exit signage","Clearly marked","Professionally installed","Visible from the room"]},{"start":185.689,"end":206.589,"title":"Kitchen Fire Extinguisher","itemStarts":[188.39,189.356,194.076,199.174,200.56,204.749],"items":["Present","Good condition","ABC rated","Photo","Sign if stored out of sight","Photograph sign"]},{"start":206.669,"end":241.62,"title":"Kitchen Safety Checks","itemStarts":[208.423,210.529,219.519,237.12],"items":["No incandescent bulbs","LEDs only","No hidden cameras","Mold check"]},{"start":244.549,"end":264.049,"title":"Kitchen Utilities","itemStarts":[247.469,250.869,257.407,260.378,262.146],"items":["Electrical wiring check","GFCI outlets","Dishwasher operational and clean","Sink/disposal working","No leaks"]},{"start":264.129,"end":274.509,"title":"Kitchen Plumbing","itemStarts":[267.646,270.549],"items":["Sink drains properly","Reasonable water pressure"]},{"start":274.589,"end":291.789,"title":"Kitchen Appliances","itemStarts":[276.554,277.076,278.189,285.259,287.289],"items":["Stove safe, clean, usable","Fridge safe, clean, usable","Microwave safe, clean, usable","Photo","Make and model"]},{"start":301.489,"end":310.749,"title":"Kitchen Cleanliness","itemStarts":[303.806,304.819,306.249],"items":["Pest check","Odor check","Overall visual assessment"]}]}},{"n":3,"label":"Bathroom & Hallway","short":"Bathroom","durationDisp":"6:04","videoSrc":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part3.mp4","vbData":{"title":"Module 2 \u2014 Bathroom & Hallway","section":"PART 3 OF 5 \u00b7 ROOM-BY-ROOM","videoDuration":363.733,"groups":[{"label":"BATHROOM","name":"Bathroom \u2013 Safety, Utilities & Accessibility Setup","triggerTime":0.0,"bullets":["The bathroom has two halves: standard safety and utility checks, then detailed accessibility assessment.","Check wiring, shower operation and cleanliness, toilet operation and cleanliness, bulbs, hidden cameras, privacy, mold, and sink function.","Confirm whether accessibility applies; some properties are marked accessibility-friendly before the inspection request is sent.","Prepare for measurement-heavy work and start with the bathroom approach: straight, perpendicular, or difficult nook access.","Check whether there is enough wheelchair turning room and measure door width from inside the frame with the door open."],"actualStartTime":0.726},{"label":"BATHROOM","name":"Bathroom \u2013 Accessibility Measurements & Final Assessment","triggerTime":72.526,"bullets":["Measure sink height and confirm whether handrails are within reach of the toilet.","Portable GuestGuard handrails count if the host can demonstrate correct installation.","Evaluate roll-in shower access, threshold height, shower dimensions, handheld showerhead, shower chair, and handrail placement.","Use exact measurements and document barriers clearly for guests who rely on accessibility information.","Finish with pest check, odor check, and overall visual assessment."],"actualStartTime":72.526},{"label":"HALLWAY","name":"Hallway","triggerTime":211.705,"bullets":["Move from bathroom to hallway and evaluate it as a connector space for emergency movement and everyday access.","Check emergency exit paths, door operation, signage, and whether guests can move quickly and safely through the space.","Inspect hallway safety items, including fire extinguisher requirements, alarm battery requirements, and other hazard detectors.","Confirm no hidden cameras, no incandescent bulbs, no water or air leaks, and no mold or moisture-related growth.","Complete pest, odor, and overall visual checks similar to the other rooms."],"actualStartTime":211.705}]},"player":{"vtt":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part3.vtt","subtitleDelay":-0.5,"calloutDelay":0,"persistOffsets":true,"introCard":{"label":"PART 3 OF 5","title":"Bathroom & Hallway"},"callouts":[{"start":14.909,"end":51.129,"title":"Bathroom Standard Checks","itemStarts":[17.72,22.436,24.5,27.644,28.72,36.673,43.503,46.629],"items":["Wiring check","Shower operational and clean","Toilets operational and clean","No incandescent bulbs","No hidden cameras","Bathroom is private","Mold check","Sink working"]},{"start":71.892,"end":111.382,"title":"Bathroom Accessibility \u2013 Approach & Basic Measurements","itemStarts":[81.552,92.472,96.576,102.812,106.882],"items":["Approach type","Wheelchair turn room if not straight","Door width","Sink height","Toilet handrails"]},{"start":116.112,"end":143.652,"title":"Bathroom Accessibility \u2013 Shower","itemStarts":[118.312,127.195,130.352,134.142,135.788,137.132,139.152],"items":["Roll-in shower","Threshold height","Shower square footage","Handheld shower head","Shower chair","Shower handrails","Non-slip mat"]},{"start":145.255,"end":159.949,"title":"Bathroom Accessibility \u2013 Toilet Clearance","itemStarts":[148.19,148.19,152.715,155.449],"items":["Left side clearance","Right side clearance","Front edge clearance","Seat width"]},{"start":162.532,"end":174.322,"title":"Bathroom Accessibility \u2013 Final Judgment","itemStarts":[166.587,169.822],"items":["Wheelchair usable?","Describe issues if not"]},{"start":174.992,"end":190.142,"title":"Bathroom Comfort","itemStarts":[179.889,182.562,185.642],"items":["Bath soaps and shampoo","Bathrobes available","Laundered between guests"]},{"start":197.779,"end":208.196,"title":"Bathroom Cleanliness","itemStarts":[200.752,201.772,203.696],"items":["Pest check","Odor check","Overall visual assessment"]},{"start":229.532,"end":243.813,"title":"Hallway Emergency Evacuation","itemStarts":[232.455,234.119,235.345,239.313],"items":["Emergency signage","Walkways clear","Walkways marked","Doors operational in emergency"]},{"start":261.243,"end":275.093,"title":"Hallway Fire Alarm Types","itemStarts":[264.366,268.753,271.033,272.633],"items":["Low-voltage monitored","Low-voltage local","Hardwired","Battery powered"]},{"start":275.173,"end":304.533,"title":"Hallway Alarm Documentation","itemStarts":[278.613,281.221,287.259,289.102,298.633,301.453],"items":["Proof of operational status","Certificate within last year","Test battery/hardwired alarms","Short video under 10 sec","Confirm hardwired powered","Photograph all alarms"]},{"start":304.613,"end":321.633,"title":"Other Hazard Detectors","itemStarts":[308.013,308.883,310.113,313.026,314.126,317.429,319.013],"items":["CO detectors","Heat detectors","Hazardous gas detectors","Note types","Hardwired status","Currently powered","Photograph all"]},{"start":321.713,"end":339.765,"title":"Hallway Safety Checks","itemStarts":[323.227,324.051,327.74,332.28,335.265],"items":["No incandescent bulbs","No hidden cameras","Handrails present if needed","Trip hazards","Mold check"]},{"start":343.306,"end":365.474,"title":"Hallway Utilities & Cleanliness","itemStarts":[347.422,352.967,359.119,359.787,360.974],"items":["Standard wiring check","Narrowest hallway width","Pest check","Odor check","Overall visual check"]}]}},{"n":4,"label":"Bedroom","short":"Bedroom","durationDisp":"4:37","videoSrc":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part4.mp4","vbData":{"title":"Module 2 \u2014 Bedroom","section":"PART 4 OF 5 \u00b7 ROOM-BY-ROOM","videoDuration":276.733,"groups":[{"label":"BEDROOM","name":"Bedroom \u2013 Emergency Preparedness & Safety","triggerTime":0.0,"bullets":["Start bedroom review with emergency evacuation and whether guests can exit safely from the sleeping space.","Check exit path doors, window or exit access, and whether doors are operational in an emergency.","Confirm fire extinguisher requirements, ABC rating, photos, and signage if the extinguisher is out of sight.","Check alarm battery requirements, alarm type, proof or test video/photo documentation, and other hazard detectors.","Review open-flame signage, no-smoking or candle rules, hidden cameras, lock type, safe availability, mold, and water or air leaks."],"actualStartTime":0.483},{"label":"BEDROOM","name":"Bedroom \u2013 Accessibility, Comfort & Cleanliness","triggerTime":130.708,"bullets":["Measure bed clearances from each side of the bed to the nearest unmovable wall or object.","Record whether anything must be moved for clearances and measure bed height from floor to top of mattress.","Check for bed raisers if the bed is under 24 inches high, and note any Hoyer lift or transfer board.","Use professional judgment to decide whether the room is usable by a wheelchair user, and describe barriers clearly.","Finish with comfort items, pest and odor checks, bed bug signs, UV sterilization, mitigation records, microwave, TV, streaming, DVD player, and movies."],"actualStartTime":130.708}]},"player":{"vtt":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part4.vtt","subtitleDelay":-0.5,"calloutDelay":0,"persistOffsets":true,"introCard":{"label":"PART 4 OF 5","title":"Bedroom"},"callouts":[{"start":17.766,"end":53.267,"title":"Bedroom Emergency Evacuation","itemStarts":[22.348,28.898,31.282,33.334,43.186,48.767],"items":["Exit signage","Escape ladder for upper floor","Instructions present","Window unobstructed","Flashlight charged and tested","Exit-path doors operational"]},{"start":58.658,"end":68.438,"title":"Bedroom Fire Safety Battery","itemStarts":[60.388,62.686,64.838,65.661],"items":["Fire extinguisher present","ABC rated","Photo","Signage if out of sight"]},{"start":68.518,"end":82.338,"title":"Bedroom Alarm Battery","itemStarts":[73.768,75.248,77.569,80.009],"items":["Alarm type","Proof or test","Video if battery/hardwired","Photo of alarms"]},{"start":82.418,"end":129.878,"title":"Bedroom Additional Safety","itemStarts":[83.193,91.325,93.498,105.588,106.988,109.651,116.041,122.921,126.75],"items":["Hazard detectors","Open flame signage","No smoking / candles / fires","No incandescent bulbs","No hidden cameras","Bedroom lock type","Combination safe","Mold or moisture growth","Water/air leaks"]},{"start":129.958,"end":177.652,"title":"Bedroom Accessibility","itemStarts":[135.838,142.175,148.928,158.308,164.094,165.986,169.784,173.152],"items":["Bed side clearances","Move items for clearance?","Bed height","Bed raisers","Hoyer lift","Transfer board","Wheelchair usability","Describe barriers"]},{"start":177.878,"end":196.068,"title":"Bedroom Comfort","itemStarts":[180.951,187.905,191.568],"items":["Air conditioning","Bottled or filtered water","Snacks or beverages"]},{"start":197.08,"end":238.148,"title":"Bedroom Cleanliness","itemStarts":[200.183,202.705,209.37,213.952,216.879,221.307,226.759,233.648],"items":["Pest check","Odor check","Bed bug signs/damage","Check sheets/blankets/mattress","Remake the bed","UV sterilization","UV wand","Bed bug mitigation plan"]},{"start":249.558,"end":278.887,"title":"Bedroom Appliances & Entertainment","itemStarts":[254.567,257.108,259.431,262.279,267.876,274.387],"items":["Microwave present","Safe, clean, usable","Photo if yes","TV type","Streaming services","DVD player / movies"]}]}},{"n":5,"label":"Common Room & Overall","short":"Common Rm","durationDisp":"7:13","videoSrc":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part5.mp4","vbData":{"title":"Module 2 \u2014 Common Room & Overall","section":"PART 5 OF 5 \u00b7 ROOM-BY-ROOM","videoDuration":433.433,"groups":[{"label":"COMMON ROOM","name":"Common Room","triggerTime":0.0,"bullets":["Common room covers the living area, dining area, and shared guest spaces.","Repeat the major safety checks: emergency evacuation, extinguisher battery, alarm battery, hazard detectors, hidden cameras, bulbs, mold, and leaks.","Evaluate accessibility and whether the shared space can reasonably be used by guests with mobility needs.","Check comfort items such as air conditioning, seating, entertainment, and guest-use amenities.","Complete cleanliness checks, pest and odor review, appliance and entertainment quality, and overall visual assessment."],"actualStartTime":0.474},{"label":"OVERALL","name":"Overall \u2013 Handbook, Access, Mobility & First Aid","triggerTime":156.494,"bullets":["The overall section covers property-wide items that do not belong to one specific room.","Confirm the GuestGuard host and guest handbook is displayed in a conspicuous location.","Review property access: whether a host or representative is available in person, lives on or adjacent to the property, and meets guests on arrival.","Check property-wide accessibility items: travel wheelchair, beach wheels where relevant, and basic wheelchair repair tools.","Verify whether a first-aid-certified person is present during stays and photograph certification when applicable; inspect first aid kit accessibility and completeness."],"actualStartTime":156.494},{"label":"OVERALL","name":"Overall \u2013 Policies, Wi-Fi, Noise, Pets & Wrap-Up","triggerTime":280.394,"bullets":["Verify non-smoking policy, signs of tobacco or marijuana use, smoking damage, documented cleaning standards, and non-chlorine cleaning options on request.","Check Wi-Fi speed throughout the rental space, with a target of at least 25 MBPS, and use a phone-based speed test when needed.","Measure background noise in decibels using a sound level meter app such as NIOSH.","Document host-side pets and guest pet policies, including dogs, cats, and whether the rental listing includes a pet policy.","Close the module by emphasizing accurate documentation, guest trust, host repair needs, live walkthrough training, technology, job acceptance, and payment training."],"actualStartTime":280.394}]},"player":{"vtt":"https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module2_part5.vtt","subtitleDelay":-0.5,"calloutDelay":0,"persistOffsets":true,"introCard":{"label":"PART 5 OF 5","title":"Common Room & Overall"},"callouts":[{"start":18.026,"end":34.836,"title":"Common Room Emergency Evacuation","itemStarts":[21.565,24.905,28.759,30.336],"items":["Exit signage","Charged flashlight","Tested flashlight","Exit-path doors operational"]},{"start":35.425,"end":66.332,"title":"Common Room Safety & Security","itemStarts":[38.694,39.725,45.682,48.454,50.405,52.866,56.568,63.731,65.682],"items":["Fire extinguisher battery","Fire alarm battery","Other hazard detectors","Open flame signage","No incandescent bulbs","No hidden cameras","Private sitting/dining rooms","Handrails for stairs","Trip hazards"]},{"start":66.412,"end":102.705,"title":"Common Room Accessibility","itemStarts":[70.912,74.857,78.845,85.053,88.353,95.405,98.205],"items":["Narrowest doorway width","Doorway lips","Threshold ramp","Wheelchair accessible overall","Dining table height","Wheelchair fits underneath","Horizontal bars/supports blocking access"]},{"start":105.605,"end":114.566,"title":"Common Room Comfort","itemStarts":[108.565,110.806,112.005],"items":["Air conditioning","Odor check","Overall visual assessment"]},{"start":114.646,"end":127.225,"title":"Common Room Appliances","itemStarts":[116.845,117.505,123.795,124.682],"items":["Washer safe, clean, usable","Dryer safe, clean, usable","Photograph both","Record make/model"]},{"start":127.305,"end":154.005,"title":"Common Room Entertainment & Amenities","itemStarts":[131.113,132.006,132.636,133.265,136.171,136.955,139.556,147.452,149.505],"items":["Reading materials","Books","Magazines","Local flyers","TV type","Streaming services","DVD player / movies","Board games or cards","Local guide information"]},{"start":171.745,"end":186.385,"title":"Overall Emergency Evacuation","itemStarts":[176.865,181.885],"items":["GuestGuard handbook displayed","Conspicuous location"]},{"start":195.285,"end":212.934,"title":"Overall Property Access","itemStarts":[197.252,202.482,205.812,207.362,207.719,208.434],"items":["Host/representative available","Lives on or adjacent","Meets guests on arrival","Always","Never","Only on request"]},{"start":214.225,"end":235.525,"title":"Overall Accessibility","itemStarts":[218.776,225.568,229.685,232.165,232.805,233.765],"items":["Travel wheelchair","Beach wheels","Wheelchair repair tools","Allen wrenches","Zip ties","Duct tape"]},{"start":235.605,"end":260.305,"title":"Overall Safety & Security","itemStarts":[239.153,240.565,244.068,253.199,256.905,258.37],"items":["First aid certified person","Certification present during stays","Red Cross / ASHI / AHA","Photograph certificate","First aid kit present","Accessible and complete"]},{"start":260.385,"end":275.735,"title":"First Aid Kit Contents","itemStarts":[262.238,262.602,263.765,265.105,268.781,269.213,270.245,271.235],"items":["Bandages","Gauze","Adhesive tape","Antiseptic wipes","Gloves","Scissors","Tweezers","Pain relievers"]},{"start":279.645,"end":300.045,"title":"Overall Cleanliness","itemStarts":[281.731,286.369,289.572,291.695,295.545],"items":["Non-smoking policy","Signs of tobacco use","Smoking damage","Cleaning standards documented","Non-chlorine options"]},{"start":300.885,"end":347.32,"title":"Overall Comfort","itemStarts":[304.417,308.038,315.502,328.126,336.987,342.82],"items":["Wi-Fi speed \u226525 Mbps","Available throughout rental space","Use fast.com","Guest/host Wi-Fi login info","Background noise in decibels","NIOSH Sound Level Meter app"]},{"start":351.491,"end":377.988,"title":"Overall Pets","itemStarts":[357.274,359.774,368.374,370.315,373.488],"items":["Host has pets","Species","Guests may bring pets","Dogs and cats specifically","Pet policy on listing"]}]}}]}</script>
+<script>
+// Chapter bootstrap: pick the active chapter, feed player.js its data, build the
+// one-line chapter strip. player.css unchanged; player.js gains only a flag-gated intro card.
+(function(){
+  var ALL = JSON.parse(document.getElementById('allChapters').textContent).chapters;
+  function activeN(){
+    var m = (location.hash||'').match(/ch=(\d+)/);
+    var n = m ? parseInt(m[1],10) : 1;
+    return (n>=1 && n<=ALL.length) ? n : 1;
+  }
+  var n = activeN();
+  var ch = ALL[n-1];
+
+  document.getElementById('vbData').textContent = JSON.stringify(ch.vbData);
+  window.GG_PLAYER = ch.player;
+
+  var vid = document.getElementById('trainingVideo');
+  var src = vid.querySelector('source');
+  if (src) src.src = ch.videoSrc; else vid.src = ch.videoSrc;
+  vid.load();
+
+  var phDesc = document.querySelector('.vid-ph-desc');
+  if (phDesc) phDesc.textContent = 'Part ' + n + ' — ' + ch.label + '. Click to begin.';
+  var phDur = document.querySelector('.vid-ph-stat-val');
+  if (phDur) phDur.textContent = ch.durationDisp;
+
+  var nav = document.getElementById('chapterNav');
+  nav.innerHTML =
+    '<div class="chapter-nav-lbl">CHAPTERS</div>' +
+    '<div class="chapter-nav-grid">' +
+    ALL.map(function(c){
+      return '<button class="chapter-btn' + (c.n===n?' active':'') + '" data-ch="' + c.n + '"' +
+             (c.n===n?' aria-current="true"':'') + ' title="Part ' + c.n + ' — ' + c.label + '">' +
+               '<span class="chapter-btn-num">' + c.n + '</span>' +
+               '<span class="chapter-btn-txt">' +
+                 '<span class="chapter-btn-name">' + c.short + '</span>' +
+                 '<span class="chapter-btn-dur">' + c.durationDisp + '</span>' +
+               '</span>' +
+             '</button>';
+    }).join('') +
+    '</div>';
+
+  nav.querySelectorAll('.chapter-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = parseInt(b.getAttribute('data-ch'),10);
+      if (t === n) return;
+      location.hash = 'ch=' + t;
+      location.reload();
+    });
+  });
+})();
+</script>
+<script src="player.js"></script>
+
+</body>
+</html>

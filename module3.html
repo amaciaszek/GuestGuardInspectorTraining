@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GuestGuard Website Tutorials</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=Inconsolata:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:     #161A24;
+  --s1:     #1C2130;
+  --s2:     #222838;
+  --s3:     #2A3042;
+  --border: #2E3648;
+  --b2:     #3A4460;
+  --gold:   #C9A84C;
+  --gold-hi:#E5C068;
+  --gold-lo: rgba(201,168,76,.18);
+  --gold-dim:rgba(201,168,76,.08);
+  --teal:   #4AAFB8;
+  --teal-hi:#5FC0C8;
+  --teal-dim:rgba(74,175,184,.1);
+  --ink:    #EEE8DA;
+  --ink-mid:#8A94A8;
+  --ink-dim:#444E68;
+  --display: 'Cormorant Garamond', serif;
+  --sans: 'Outfit', sans-serif;
+  --mono: 'Inconsolata', monospace;
+  --noise-opacity: 0.025;
+}
+body.light-mode {
+  --bg:     #F7F3EC;
+  --s1:     #F0EBE2;
+  --s2:     #E8E1D6;
+  --s3:     #DDD5C8;
+  --border: #D0C8BB;
+  --b2:     #C0B8AB;
+  --gold:   #8B6914;
+  --gold-hi:#A38320;
+  --gold-lo: rgba(139,105,20,.18);
+  --gold-dim:rgba(139,105,20,.1);
+  --teal:   #1A4A2E;
+  --teal-hi:#2E7A4E;
+  --teal-dim:rgba(26,74,46,.1);
+  --ink:    #1E1A14;
+  --ink-mid:#5A4E3C;
+  --ink-dim:#9A8E7C;
+  --noise-opacity: 0;
+}
+html { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: clamp(14px, 0.9vw, 18px); }
+body { min-height: 100vh; background: var(--bg); }
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  background-size: 200px 200px; opacity: var(--noise-opacity); transition: opacity .3s ease;
+}
+* { position: relative; }
+a { color: inherit; }
+.hdr {
+  position: sticky; top: 0; z-index: 50; height: 72px; display: flex; align-items: center; gap: 20px; padding: 0 2rem;
+  background: var(--bg); border-bottom: 1px solid var(--border); box-shadow: 0 2px 0 rgba(201,168,76,.15);
+}
+body.light-mode .hdr { border-bottom: 2px solid var(--ink); box-shadow: none; }
+.hdr-logo { height: 56px; width: auto; display: block; }
+.hdr-sep { width: 1px; height: 28px; background: var(--b2); }
+.hdr-title { font-size: 1rem; font-weight: 500; color: var(--ink); letter-spacing: .01em; }
+.hdr-tag { margin-left: auto; font-family: var(--mono); font-size: .65rem; color: var(--ink-mid); letter-spacing: .12em; border: 1px solid var(--border); padding: 5px 12px; background: var(--s2); }
+.theme-toggle { display: flex; align-items: center; gap: 8px; margin-left: 16px; }
+.toggle-switch { position: relative; width: 32px; height: 18px; background: var(--s2); border: 1px solid var(--border); border-radius: 9px; cursor: pointer; transition: all .3s ease; }
+body.light-mode .toggle-switch { background: var(--teal); border-color: var(--teal); }
+.toggle-slider { position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; background: var(--ink-dim); border-radius: 50%; transition: all .3s ease; }
+body.light-mode .toggle-slider { transform: translateX(14px); background: white; }
+.toggle-icon { width: 16px; height: 16px; stroke: var(--ink-dim); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.main { max-width: 1500px; margin: 0 auto; padding: 42px 32px 72px; }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: end; margin-bottom: 34px; padding-bottom: 26px; border-bottom: 1px solid var(--border); }
+.eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .16em; color: var(--gold-hi); text-transform: uppercase; margin-bottom: 10px; }
+body.light-mode .eyebrow { color: var(--teal); }
+.hero h1 { font-family: var(--display); font-size: clamp(2.1rem, 5vw, 4.8rem); line-height: .95; font-weight: 600; color: var(--ink); letter-spacing: -.02em; margin-bottom: 16px; }
+.hero p { max-width: 820px; font-size: 1.05rem; color: var(--ink-mid); line-height: 1.65; }
+.hero-stat { min-width: 210px; padding: 22px 24px; border: 1px solid var(--border); background: linear-gradient(135deg, var(--s1), var(--s2)); text-align: center; }
+body.light-mode .hero-stat { border: 2px solid var(--ink); background: var(--s1); }
+.hero-stat .num { font-family: var(--display); font-size: 4rem; color: var(--gold-hi); line-height: .9; }
+body.light-mode .hero-stat .num { color: var(--teal); }
+.hero-stat .label { font-family: var(--mono); font-size: .7rem; letter-spacing: .14em; color: var(--ink-mid); text-transform: uppercase; margin-top: 8px; }
+.tools { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 34px; align-items: center; }
+.search { flex: 1; min-width: 260px; padding: 14px 16px; border: 1px solid var(--border); background: var(--s1); color: var(--ink); font-family: var(--sans); font-size: .95rem; outline: none; }
+.search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dim); }
+body.light-mode .search:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-dim); }
+.filter-btn { border: 1px solid var(--border); background: var(--s2); color: var(--ink-mid); padding: 13px 16px; font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: all .2s; }
+.filter-btn:hover, .filter-btn.active { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+body.light-mode .filter-btn:hover, body.light-mode .filter-btn.active { background: var(--teal); color: #fff; border-color: var(--teal); }
+.category { margin: 34px 0 44px; }
+.category-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.category-icon { width: 38px; height: 38px; display: grid; place-items: center; background: var(--gold-dim); border: 1px solid var(--gold-lo); font-size: 1.1rem; }
+body.light-mode .category-icon { background: var(--teal-dim); border-color: var(--teal); }
+.category-title { font-family: var(--display); font-size: 2rem; font-weight: 600; color: var(--ink); }
+.category-desc { color: var(--ink-mid); line-height: 1.5; font-size: .95rem; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+.card { background: linear-gradient(180deg, var(--s1), var(--s2)); border: 1px solid var(--border); padding: 22px; min-height: 260px; display: flex; flex-direction: column; overflow: hidden; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.card::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--gold), transparent); opacity: .8; }
+body.light-mode .card { background: var(--s1); border: 2px solid var(--ink); }
+body.light-mode .card::before { background: var(--teal); }
+.card:hover { transform: translateY(-3px); border-color: var(--gold); box-shadow: 0 18px 40px rgba(0,0,0,.18); }
+body.light-mode .card:hover { border-color: var(--teal); }
+.card-top { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.card-id { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; color: var(--gold-hi); text-transform: uppercase; border: 1px solid var(--gold-lo); padding: 5px 8px; background: var(--gold-dim); }
+body.light-mode .card-id { color: var(--teal); border-color: var(--teal); background: var(--teal-dim); }
+.card-symbol { font-size: 1.6rem; opacity: .9; }
+.card h3 { font-family: var(--display); font-size: 1.6rem; line-height: 1.08; font-weight: 600; color: var(--ink); margin-bottom: 12px; margin-top: 4px; }
+.card p { color: var(--ink-mid); line-height: 1.55; font-size: .94rem; margin-bottom: 22px; }
+.card-duration { margin-top: auto; font-family: var(--mono); font-size: .75rem; color: var(--ink-mid); letter-spacing: .08em; padding-top: 14px; border-top: 1px solid var(--border); }
+.btn { border: 1px solid var(--border); background: var(--s3); color: var(--ink); padding: 11px 14px; font-family: var(--sans); font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; text-decoration: none; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
+.btn.primary { background: linear-gradient(135deg, var(--gold), var(--gold-hi)); color: var(--bg); border-color: var(--gold); }
+.btn:hover { transform: translateY(-1px); border-color: var(--gold); }
+body.light-mode .btn.primary { background: var(--teal); color: #fff; border-color: var(--teal); }
+body.light-mode .btn:hover { border-color: var(--teal); }
+.player-view { display: none; height: calc(100vh - 72px); }
+.player-view.active { display: block; }
+.library-view.hidden { display: none; }
+.player-shell { height: 100%; display: flex; flex-direction: column; }
+.player-bar { display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: var(--s1); border-bottom: 1px solid var(--border); }
+body.light-mode .player-bar { border-bottom: 2px solid var(--ink); }
+.back-btn { border: 1px solid var(--border); background: var(--s2); color: var(--ink); padding: 10px 14px; cursor: pointer; font-family: var(--mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+.back-btn:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+body.light-mode .back-btn:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
+.player-title { font-family: var(--display); font-size: 1.5rem; font-weight: 600; color: var(--ink); }
+.player-subtitle { margin-left: auto; font-family: var(--mono); font-size: .72rem; color: var(--ink-mid); letter-spacing: .1em; }
+.content-wrapper { display: flex; gap: 0; align-items: stretch; flex: 1; min-height: 0; }
+.vid-container { flex: 1; background: var(--s1); border-right: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+body.light-mode .vid-container { border-right: 2px solid var(--ink); }
+.follow-btn-container { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 280px; background: var(--s1); border-left: 1px solid var(--border); flex-shrink: 0; padding: 2rem; }
+body.light-mode .follow-btn-container { background: var(--s2); border-left: 2px solid var(--ink); }
+.follow-btn { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 24px; font-size: .75rem; font-weight: 500; color: var(--bg); background: linear-gradient(135deg, var(--gold), var(--gold-hi)); border: none; border-radius: 6px; cursor: pointer; text-decoration: none; transition: all .3s; letter-spacing: .08em; text-align: center; text-transform: uppercase; width: 100%; box-shadow: 0 4px 12px rgba(201,168,76,.3); }
+body.light-mode .follow-btn { color: #fff; background: var(--teal); box-shadow: 0 2px 8px rgba(26,74,46,.2); }
+.follow-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(201,168,76,.4); }
+.next-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 24px; font-size: .75rem; font-weight: 600; color: var(--ink); background: var(--s3); border: 1px solid var(--border); cursor: pointer; text-transform: uppercase; letter-spacing: .08em; width: 100%; margin-top: 16px; transition: all .3s; }
+.next-btn:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); transform: translateY(-1px); }
+body.light-mode .next-btn:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
+.next-btn-title { font-family: var(--display); font-size: 1rem; font-weight: 600; text-transform: none; letter-spacing: 0; color: inherit; opacity: .85; }
+.vid-box { flex: 1; width: 100%; background: var(--s2); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+.vid-box::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(0deg, transparent 24%, var(--border) 25%, var(--border) 26%, transparent 27%, transparent 74%, var(--border) 75%, var(--border) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, var(--border) 25%, var(--border) 26%, transparent 27%, transparent 74%, var(--border) 75%, var(--border) 76%, transparent 77%, transparent); background-size: 60px 60px; opacity: .4; animation: gridDrift 20s linear infinite; }
+body.light-mode .vid-box::before { display: none; }
+@keyframes gridDrift { from { transform: translate(0, 0); } to { transform: translate(60px, 60px); } }
+.vid-pholder { display: flex; flex-direction: column; align-items: center; gap: 24px; cursor: pointer; z-index: 1; padding: 40px; }
+.vid-ph-icon-wrap { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }
+.vid-ph-ring { position: absolute; width: 100%; height: 100%; border: 1px solid var(--gold-lo); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+.vid-ph-ring:nth-child(2) { animation-delay: .5s; opacity: .6; }
+.vid-ph-ring:nth-child(3) { animation-delay: 1s; opacity: .3; }
+@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: .3; } }
+.vid-ph-icon { position: relative; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--gold), var(--gold-hi)); border-radius: 50%; font-size: 22px; color: var(--bg); box-shadow: 0 8px 32px rgba(201,168,76,.3); }
+body.light-mode .vid-ph-icon { background: var(--ink); }
+.vid-ph-content { text-align: center; max-width: 620px; }
+.vid-ph-title { font-family: var(--display); font-size: 1.8rem; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+.vid-ph-desc { font-size: 1rem; color: var(--ink-mid); line-height: 1.6; }
+video { display: none; width: 100%; height: 100%; object-fit: contain; background: var(--s2); z-index: 2; }
+.vid-subs { padding: 18px 32px; background: var(--s2); border-top: 1px solid var(--border); min-height: 78px; display: flex; align-items: center; justify-content: center; }
+.vid-subs-text { font-size: 1.1rem; color: var(--ink); line-height: 1.6; text-align: center; font-weight: 400; max-width: 1200px; }
+.scrub { height: 12px; background: var(--s3); position: relative; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,.4); border-top: 1px solid var(--border); }
+body.light-mode .scrub { height: 4px; box-shadow: none; }
+.scrub-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-hi)); width: 0%; transition: width .1s linear; box-shadow: 0 0 12px rgba(201,168,76,.6); }
+body.light-mode .scrub-fill { background: var(--teal); box-shadow: none; }
+.scrub-dot { position: absolute; top: 50%; width: 20px; height: 20px; background: var(--gold); border: 3px solid var(--bg); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,.6); z-index: 2; }
+body.light-mode .scrub-dot { width: 12px; height: 12px; background: var(--teal); border: 2px solid var(--bg); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.vid-controls { display: flex; align-items: center; gap: 16px; padding: 16px 24px; background: var(--s2); border-top: 1px solid var(--border); }
+.ctrl-btn { width: 48px; height: 48px; background: var(--s3); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--ink); transition: all .2s; flex-shrink: 0; }
+.ctrl-btn:hover { background: var(--gold); border-color: var(--gold); color: var(--bg); transform: scale(1.05); }
+body.light-mode .ctrl-btn:hover { background: var(--teal); border-color: var(--teal); color: #fff; }
+/* Module2-style round play button */
+.vid-play-btn { width: 40px; height: 40px; background: var(--gold); border: none; border-radius: 50%; color: var(--bg); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; flex-shrink: 0; }
+body.light-mode .vid-play-btn { background: var(--teal); }
+.vid-play-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(201,168,76,.4); }
+body.light-mode .vid-play-btn:hover { box-shadow: 0 4px 12px rgba(26,74,46,.3); }
+.vid-rewind-btn { position: relative; width: 40px; height: 40px; background: transparent; border: 1px solid var(--border); border-radius: 50%; color: var(--ink-mid); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; flex-shrink: 0; }
+.vid-rewind-btn:hover { color: var(--gold); border-color: var(--gold); transform: scale(1.05); }
+body.light-mode .vid-rewind-btn:hover { color: var(--teal); border-color: var(--teal); }
+.vid-rewind-num { position: absolute; font-family: var(--mono); font-size: 8px; font-weight: 700; line-height: 1; top: 53%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+/* Hover overlay (play/pause icon on video hover) */
+.vid-hover-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity 0.5s ease; z-index: 10; background: rgba(0,0,0,.3); }
+.vid-box:hover .vid-hover-overlay { opacity: 1; }
+.vid-hover-icon { width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; background: rgba(201,168,76,.15); border: 3px solid var(--gold); border-radius: 50%; font-size: 36px; color: var(--gold); backdrop-filter: blur(8px); }
+body.light-mode .vid-hover-icon { background: rgba(26,74,46,.15); border-color: var(--teal); color: var(--teal); }
+/* Section title card transition overlay */
+.section-transition-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; opacity: 0; z-index: 15; background: linear-gradient(135deg, rgba(22,26,36,.95), rgba(28,33,48,.95)); backdrop-filter: blur(12px); transition: opacity 0.6s ease; padding: 40px; }
+body.light-mode .section-transition-overlay { background: linear-gradient(135deg, rgba(247,243,236,.95), rgba(240,235,226,.95)); }
+.section-transition-overlay.show { opacity: 1; }
+.section-transition-label { font-family: var(--mono); font-size: 0.85rem; color: var(--gold); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 16px; opacity: 0; transform: translateY(20px); transition: all 0.8s ease 0.2s; }
+body.light-mode .section-transition-label { color: var(--teal); }
+.section-transition-overlay.show .section-transition-label { opacity: 1; transform: translateY(0); }
+.section-transition-title { font-family: var(--display); font-size: 2.5rem; font-weight: 600; color: var(--ink); text-align: center; max-width: 800px; line-height: 1.3; opacity: 0; transform: translateY(30px); transition: all 0.8s ease 0.4s; letter-spacing: .02em; }
+.section-transition-overlay.show .section-transition-title { opacity: 1; transform: translateY(0); }
+.section-transition-accent { width: 80px; height: 3px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin-top: 24px; opacity: 0; transform: scaleX(0); transition: all 0.8s ease 0.6s; }
+body.light-mode .section-transition-accent { background: linear-gradient(90deg, transparent, var(--teal), transparent); }
+.section-transition-overlay.show .section-transition-accent { opacity: 1; transform: scaleX(1); }
+.time-display { font-family: var(--mono); font-size: .9rem; color: var(--ink-mid); display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.empty { display:none; padding: 28px; border: 1px solid var(--border); background: var(--s1); color: var(--ink-mid); text-align: center; }
+@media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hero { grid-template-columns: 1fr; } .hero-stat { width: max-content; } }
+@media (max-width: 760px) {
+  .hdr { padding: 0 1rem; gap: 12px; } .hdr-title { display:none; } .hdr-tag { margin-left:auto; }
+  .main { padding: 28px 18px 52px; } .grid { grid-template-columns: 1fr; } .tools { align-items: stretch; } .filter-btn { flex: 1; }
+  .content-wrapper { flex-direction: column; } .player-view { height: auto; min-height: calc(100vh - 72px); }
+  .vid-container { min-height: 65vh; border-right: none; border-bottom: 1px solid var(--border); }
+  .follow-btn-container { width: 100%; border-left: none; border-top: 1px solid var(--border); padding: 1.5rem; }
+  .follow-btn { max-width: 340px; } .player-subtitle { display:none; }
+}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <img id="logoImg" src="https://guestguard-platform.vercel.app/_next/image?url=%2Fgg_logo_small.png&w=640&q=75&dpl=dpl_DveWjYKd9Bi3M3CYp1G8uPrAWQZY" alt="GuestGuard Logo" class="hdr-logo">
+  <div class="hdr-sep"></div>
+  <div class="hdr-title">GuestGuard Website Tutorials</div>
+  <div class="hdr-tag">MODULE 3</div>
+  <div class="theme-toggle" aria-label="Toggle light and dark mode">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="toggle-icon sun"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+    <div class="toggle-switch" id="themeToggle"><div class="toggle-slider"></div></div>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="toggle-icon moon"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path></svg>
+  </div>
+</header>
+
+<main class="library-view" id="libraryView">
+  <div class="main">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Reusable Reference Module</div>
+        <h1>GuestGuard Website Tutorials</h1>
+        <p>Use this module as a reference library. Choose the action you need, watch the short walkthrough, then use the follow-along link to practice in the GuestGuard portal.</p>
+      </div>
+      <div class="hero-stat"><div class="num">15</div><div class="label">Step-by-Step Videos</div></div>
+    </section>
+
+    <div id="categoryContainer"></div>
+  </div>
+</main>
+
+<section class="player-view" id="playerView" aria-live="polite">
+  <div class="player-shell">
+    <div class="player-bar">
+      <button class="back-btn" id="backBtn">← Library</button>
+      <div class="player-title" id="playerTitle">Video Title</div>
+      <div class="player-subtitle" id="playerSubtitle">B1</div>
+    </div>
+    <div class="content-wrapper">
+      <div class="vid-container">
+        <div class="vid-box" id="vidBox">
+          <div class="vid-pholder" id="vidPlaceholder">
+            <div class="vid-ph-icon-wrap">
+              <div class="vid-ph-ring"></div><div class="vid-ph-ring"></div><div class="vid-ph-ring"></div>
+              <div class="vid-ph-icon">▶</div>
+            </div>
+            <div class="vid-ph-content">
+              <div class="vid-ph-title" id="placeholderTitle">Video Title</div>
+              <div class="vid-ph-desc" id="placeholderDesc">Click to begin the walkthrough.</div>
+            </div>
+          </div>
+          <video id="trainingVideo" preload="metadata" playsinline></video>
+          <!-- Section title card overlay -->
+          <div class="section-transition-overlay" id="sectionTransition">
+            <div class="section-transition-label" id="transitionLabel">NOW PLAYING</div>
+            <div class="section-transition-title" id="transitionTitle"></div>
+            <div class="section-transition-accent"></div>
+          </div>
+          <!-- Hover overlay for play/pause icon -->
+          <div class="vid-hover-overlay" id="hoverOverlay">
+            <div class="vid-hover-icon" id="hoverIcon">▶</div>
+          </div>
+        </div>
+        <div class="vid-subs"><div class="vid-subs-text" id="subsText">—</div></div>
+        <div class="scrub" id="scrubBar"><div class="scrub-fill" id="scrubFill"></div><div class="scrub-dot" id="scrubDot"></div></div>
+        <div class="vid-controls">
+          <button class="vid-play-btn" id="playBtn" aria-label="Play/Pause">▶</button>
+          <button class="vid-rewind-btn" id="rewindBtn" aria-label="Rewind 10 seconds" title="Rewind 10 seconds">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M11 4 A 8 8 0 1 1 4 12"></path>
+              <polyline points="11 1 11 4 14 4"></polyline>
+            </svg>
+            <span class="vid-rewind-num">10</span>
+          </button>
+          <div class="time-display"><span id="currentTime">0:00</span><span>/</span><span id="totalTime">0:00</span></div>
+        </div>
+      </div>
+      <div class="follow-btn-container">
+        <button class="follow-btn" id="followBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          Follow Along on Portal
+        </button>
+        <button class="next-btn" id="nextBtn" style="display:none;">
+          Next Video →
+          <div class="next-btn-title" id="nextBtnTitle"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="theme.js"></script>
+<script>
+const BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/';
+const DEFAULT_FOLLOW = 'https://portal.guestguard.com';
+
+const videos = [
+  { id:'B1',  category:'Orientation',  title:'Intro + Home Page',                         desc:'Start here for the opening overview and a first look at the GuestGuard home page.',           duration:'4 min' },
+  { id:'B2',  category:'Orientation',  title:'Guest Portal Overview',                     desc:'Walk through the main guest portal layout, navigation, and key areas.',                        duration:'6 min' },
+  { id:'B3',  category:'Inspections',  title:'Guest Property View',                       desc:'Understand the guest property view and how property information is displayed.',                 duration:'11 min' },
+  { id:'B4',  category:'Setup',        title:'Accept Company Invite',                     desc:'Learn how to accept an invitation and connect your account to a company.',                      duration:'5 min' },
+  { id:'B5',  category:'Workflow',     title:'Job Stages',                                desc:'Review the different job stages and how work moves through the portal.',                        duration:'6 min' },
+  { id:'B6',  category:'Inspections',  title:'Selecting an Inspection Date + Time',       desc:'Schedule an inspection by choosing the correct date and time.',                                 duration:'3 min' },
+  { id:'B7',  category:'Inspections',  title:'Starting an Inspection',                    desc:'Begin an inspection and enter the inspection workflow.',                                         duration:'3 min' },
+  { id:'B8',  category:'Inspections',  title:'Overall Section of Inspection',             desc:'Complete the overall inspection section before moving through individual rooms.',                duration:'7 min' },
+  { id:'B9',  category:'Inspections',  title:'Adding a Room + Uploading Images',          desc:'Add a room to an inspection and upload the necessary images.',                                  duration:'3 min' },
+  { id:'B10', category:'Inspections',  title:'Completing a Room in the Inspection',       desc:'Finish a room section and confirm the required information is complete.',                       duration:'2 min' },
+  { id:'B11', category:'Workflow',     title:'Recovering an Inspection After Outage',     desc:'Recover inspection progress after losing internet connection.',                                  duration:'2 min' },
+  { id:'B12', category:'Setup',        title:'Adding Your Own Company',                   desc:'Create or add a company inside the GuestGuard system.',                                         duration:'11 min' },
+  { id:'B13', category:'Setup',        title:'Accessing Stripe Payment Portal',           desc:'Open and use the Stripe payment portal for billing and payment-related tasks.',                 duration:'5 min' },
+  { id:'B14', category:'Orientation',  title:'Management Portal',                         desc:'Review the management portal side of GuestGuard and where to find important tools.',            duration:'7 min' },
+  { id:'B15', category:'Wrap-Up',      title:'Outro',                                     desc:'Finish the module with closing remarks and a final wrap-up.',                                    duration:'1 min' },
+];
+
+const categoryInfo = {
+  'Orientation': { desc:'Start here — overview of the portal, home page, and management tools.' },
+  'Setup':       { desc:'Account setup, company creation, invites, and payment configuration.' },
+  'Inspections': { desc:'The full inspection workflow from property view through completing rooms.' },
+  'Workflow':    { desc:'Job stages and recovery steps for important situations.' },
+  'Wrap-Up':     { desc:'Module closing and final remarks.' },
+};
+
+const categoryContainer = document.getElementById('categoryContainer');
+
+function renderLibrary() {
+  categoryContainer.innerHTML = '';
+
+  Object.keys(categoryInfo).forEach(category => {
+    const group = videos.filter(v => v.category === category);
+    if (!group.length) return;
+    const section = document.createElement('section');
+    section.className = 'category';
+    section.innerHTML = `
+      <div class="category-head">
+
+        <h2 class="category-title">${category}</h2>
+      </div>
+      <div class="category-desc">${categoryInfo[category].desc}</div>
+      <div class="grid"></div>
+    `;
+    const grid = section.querySelector('.grid');
+    group.forEach(v => {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('data-watch', v.id);
+      card.style.cursor = 'pointer';
+      card.innerHTML = `
+        <h3>${v.title}</h3>
+        <p>${v.desc}</p>
+        <div class="card-duration">▶ ${v.duration}</div>
+      `;
+      grid.appendChild(card);
+    });
+    categoryContainer.appendChild(section);
+  });
+
+  document.querySelectorAll('[data-watch]').forEach(card => {
+    card.addEventListener('click', () => openVideo(card.dataset.watch));
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openVideo(card.dataset.watch); });
+  });
+}
+
+renderLibrary();
+
+let maxWatched = 0;
+let subtitles = [];
+let currentVideoMeta = null;
+let isPlaying = false;
+let transitionTimeout = null;
+const libraryView = document.getElementById('libraryView');
+const playerView = document.getElementById('playerView');
+const backBtn = document.getElementById('backBtn');
+const video = document.getElementById('trainingVideo');
+const playBtn = document.getElementById('playBtn');
+const vidBox = document.getElementById('vidBox');
+const vidPlaceholder = document.getElementById('vidPlaceholder');
+const scrubBar = document.getElementById('scrubBar');
+const scrubFill = document.getElementById('scrubFill');
+const scrubDot = document.getElementById('scrubDot');
+const subsText = document.getElementById('subsText');
+const currentTimeEl = document.getElementById('currentTime');
+const totalTimeEl = document.getElementById('totalTime');
+const playerTitle = document.getElementById('playerTitle');
+const playerSubtitle = document.getElementById('playerSubtitle');
+const placeholderTitle = document.getElementById('placeholderTitle');
+const placeholderDesc = document.getElementById('placeholderDesc');
+const followBtn = document.getElementById('followBtn');
+const nextBtn = document.getElementById('nextBtn');
+const nextBtnTitle = document.getElementById('nextBtnTitle');
+const hoverOverlay = document.getElementById('hoverOverlay');
+const hoverIcon = document.getElementById('hoverIcon');
+const sectionTransition = document.getElementById('sectionTransition');
+const transitionTitle = document.getElementById('transitionTitle');
+
+function videoSrc(id) { return `${BASE}${id}.mp4`; }
+function vttSrc(id) { return `${BASE}${id}.vtt`; }
+
+function updateHoverIcon() {
+  hoverIcon.textContent = video.paused ? '▶' : '❚❚';
+}
+
+let titleCardActive = false;
+
+function showTitleCard(title) {
+  if (transitionTimeout) clearTimeout(transitionTimeout);
+  titleCardActive = true;
+  // Hide the placeholder — the title card IS the intro, video starts right after
+  vidPlaceholder.style.display = 'none';
+  video.style.display = 'block';
+  transitionTitle.textContent = title;
+  sectionTransition.classList.add('show');
+  // Dismiss after 3.5s, then wait for the 0.6s CSS fade before playing
+  transitionTimeout = setTimeout(() => {
+    sectionTransition.classList.remove('show');
+    transitionTimeout = setTimeout(() => {
+      titleCardActive = false;
+      transitionTimeout = null;
+      video.play();
+      playBtn.textContent = '❚❚';
+      isPlaying = true;
+      updateHoverIcon();
+    }, 650);
+  }, 3500);
+}
+
+function openVideo(id) {
+  const meta = videos.find(v => v.id === id);
+  if (!meta) return;
+  currentVideoMeta = meta;
+  maxWatched = 0;
+  subtitles = [];
+  isPlaying = false;
+  if (transitionTimeout) { clearTimeout(transitionTimeout); transitionTimeout = null; }
+  sectionTransition.classList.remove('show');
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+  video.src = videoSrc(id);
+  video.style.display = 'none';
+  vidPlaceholder.style.display = 'none';
+  playBtn.textContent = '▶';
+  updateHoverIcon();
+  currentTimeEl.textContent = '0:00';
+  totalTimeEl.textContent = '0:00';
+  scrubFill.style.width = '0%';
+  scrubDot.style.left = '0%';
+  subsText.textContent = '—';
+  playerTitle.textContent = meta.title;
+  playerSubtitle.textContent = meta.category;
+  placeholderTitle.textContent = meta.title;
+  placeholderDesc.textContent = meta.desc;
+  followBtn.dataset.url = meta.follow || DEFAULT_FOLLOW;
+  const currentIdx = videos.findIndex(v => v.id === id);
+  const nextVideo = videos[currentIdx + 1] || null;
+  if (nextVideo) { nextBtn.style.display = 'flex'; nextBtnTitle.textContent = nextVideo.title; }
+  else { nextBtn.style.display = 'none'; }
+  libraryView.classList.add('hidden');
+  playerView.classList.add('active');
+  window.scrollTo(0, 0);
+  loadVTT(vttSrc(id));
+  // Show title card animation
+  showTitleCard(meta.title);
+}
+
+function closeVideo() {
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+  isPlaying = false;
+  titleCardActive = false;
+  if (transitionTimeout) { clearTimeout(transitionTimeout); transitionTimeout = null; }
+  sectionTransition.classList.remove('show');
+  playerView.classList.remove('active');
+  libraryView.classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+backBtn.addEventListener('click', closeVideo);
+followBtn.addEventListener('click', () => {
+  const url = followBtn.dataset.url || DEFAULT_FOLLOW;
+  const w = Math.min(1200, screen.width - 80);
+  const h = Math.min(800, screen.height - 80);
+  const left = Math.round((screen.width - w) / 2);
+  const top = Math.round((screen.height - h) / 2);
+  window.open(url, 'guestguard_followalong', `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+});
+nextBtn.addEventListener('click', () => {
+  const currentIdx = videos.findIndex(v => v.id === currentVideoMeta.id);
+  const next = videos[currentIdx + 1];
+  if (next) openVideo(next.id);
+});
+
+video.addEventListener('contextmenu', e => e.preventDefault());
+
+function parseVTT(vttText) {
+  const lines = vttText.split('\n');
+  const blocks = [];
+  let currentBlock = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line === 'WEBVTT' || line === 'NOTE' || (line === '' && currentBlock.length === 0)) continue;
+    if (line === '') {
+      if (currentBlock.length > 0) { blocks.push(currentBlock.join('\n')); currentBlock = []; }
+      continue;
+    }
+    currentBlock.push(line);
+  }
+  if (currentBlock.length > 0) blocks.push(currentBlock.join('\n'));
+  return blocks.map(block => {
+    const lines = block.split('\n');
+    let timeLineIdx = 0;
+    for (let i = 0; i < lines.length; i++) if (lines[i].includes('-->')) { timeLineIdx = i; break; }
+    if (timeLineIdx === 0 && !lines[0].includes('-->')) return null;
+    const timeLine = lines[timeLineIdx];
+    const timeMatch = timeLine.match(/(\d{2}):(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})\.(\d{3})/);
+    if (!timeMatch) return null;
+    const startTime = parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60 + parseInt(timeMatch[3]) + parseInt(timeMatch[4]) / 1000;
+    const endTime = parseInt(timeMatch[5]) * 3600 + parseInt(timeMatch[6]) * 60 + parseInt(timeMatch[7]) + parseInt(timeMatch[8]) / 1000;
+    const text = lines.slice(timeLineIdx + 1).join(' ');
+    return { start: startTime, end: endTime, text: text };
+  }).filter(Boolean);
+}
+
+function loadVTT(url) {
+  fetch(url)
+    .then(response => response.text())
+    .then(vttText => { subtitles = parseVTT(vttText); })
+    .catch(err => console.warn('Could not load VTT subtitles:', err));
+}
+
+function updateSubtitles(t) {
+  const currentSub = subtitles.find(s => t >= s.start && t <= s.end) || subtitles.filter(s => t >= s.start).pop();
+  subsText.textContent = currentSub ? currentSub.text : '—';
+}
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds)) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+function updateProgress(currentTime, duration) {
+  const percent = duration ? (currentTime / duration) * 100 : 0;
+  scrubFill.style.width = percent + '%';
+  scrubDot.style.left = percent + '%';
+  currentTimeEl.textContent = formatTime(currentTime);
+}
+function startPlayback() {
+  vidPlaceholder.style.display = 'none';
+  video.style.display = 'block';
+  video.play();
+  isPlaying = true;
+  playBtn.textContent = '❚❚';
+  updateHoverIcon();
+}
+vidPlaceholder.addEventListener('click', () => { if (!titleCardActive) startPlayback(); });
+playBtn.addEventListener('click', () => {
+  if (titleCardActive) return;
+  if (video.style.display === 'none' || !video.src) startPlayback();
+  else if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
+  else { video.pause(); playBtn.textContent = '▶'; }
+  updateHoverIcon();
+});
+vidBox.addEventListener('click', e => {
+  if ((e.target === video || e.target === vidBox) && video.style.display !== 'none') {
+    if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
+    else { video.pause(); playBtn.textContent = '▶'; }
+    updateHoverIcon();
+  }
+});
+video.addEventListener('loadedmetadata', () => { totalTimeEl.textContent = formatTime(video.duration); });
+video.addEventListener('timeupdate', () => {
+  const t = video.currentTime;
+  if (t > maxWatched) maxWatched = t;
+  updateProgress(t, video.duration);
+  updateSubtitles(t);
+});
+video.addEventListener('play', () => { isPlaying = true; playBtn.textContent = '❚❚'; updateHoverIcon(); });
+video.addEventListener('pause', () => { isPlaying = false; playBtn.textContent = '▶'; updateHoverIcon(); });
+// Pause when tab is hidden
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && !video.paused) video.pause();
+});
+scrubBar.addEventListener('click', e => {
+  const rect = scrubBar.getBoundingClientRect();
+  const clickPct = (e.clientX - rect.left) / rect.width;
+  const targetT = clickPct * video.duration;
+  // DEBUG MODE: scrubbing unrestricted — remove this comment and restore maxWatched check for production
+  video.currentTime = targetT;
+});
+// Rewind 10 seconds. Setting currentTime fires timeupdate, which refreshes progress + subtitles.
+const rewindBtn = document.getElementById('rewindBtn');
+if (rewindBtn) {
+  rewindBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (video.style.display === 'none' || !video.src) return;
+    video.currentTime = Math.max(0, video.currentTime - 10);
+  });
+}
+</script>
+</body>
+</html>
