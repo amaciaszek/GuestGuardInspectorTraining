@@ -10,6 +10,7 @@ let dur=VB.videoDuration;
 let currentGroupIdx = -1;
 let isPlaying = false;
 let isDragging = false;
+let subsUnlocked = false;
 
 const video = document.getElementById('trainingVideo');
 const playBtn = document.getElementById('playBtn');
@@ -37,9 +38,182 @@ const vidEndcardReplay = document.getElementById('vidEndcardReplay');
 const NEXT_TARGET = (typeof window !== 'undefined' && window.GG_NEXT) ? window.GG_NEXT : null;
 
 // --- Loading spinner ------------------------------------------------------
-// Reassures viewers on slow connections that real content is on the way.
+// Reassures viewers on slow connections that real content is on the way,
+// and shows how much has buffered so far.
 function showSpinner() { if (vidLoading) vidLoading.classList.add('show'); }
 function hideSpinner() { if (vidLoading) vidLoading.classList.remove('show'); }
+
+// Best available duration: real metadata if present, else the known value from vbData.
+function effectiveDuration() {
+  if (Number.isFinite(video.duration) && video.duration > 0) return video.duration;
+  return (Number.isFinite(dur) && dur > 0) ? dur : 0;
+}
+function bufferedEndSec() {
+  try {
+    if (!video.buffered || video.buffered.length === 0) return 0;
+    let end = 0;
+    for (let i = 0; i < video.buffered.length; i++) end = Math.max(end, video.buffered.end(i));
+    return end;
+  } catch (e) { return 0; }
+}
+function bufferedPercent() {
+  const d = effectiveDuration();
+  if (d <= 0) return null;
+  const end = bufferedEndSec();
+  if (end <= 0) return null;
+  return Math.max(0, Math.min(100, Math.round((end / d) * 100)));
+}
+function updateLoadingPercent() {
+  if (!vidLoading) return;
+  const textEl = vidLoading.querySelector('.vid-loading-text');
+  if (!textEl) return;
+  const p = bufferedPercent();
+  textEl.textContent = (p == null) ? 'Loading video…' : ('Loading video… ' + p + '%');
+}
+
+// --- Load diagnostics (console) ------------------------------------------
+// Set to false to silence. Logs why a clip is slow: file size, range support,
+// when duration/metadata become known, and how fast the buffer fills.
+const GG_LOAD_DEBUG = true;
+const ggT0 = performance.now();
+let ggHeadBytes = 0;
+function ggElapsed() { return ((performance.now() - ggT0) / 1000).toFixed(2) + 's'; }
+const NET = ['EMPTY', 'IDLE', 'LOADING', 'NO_SOURCE'];
+const RDY = ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT', 'HAVE_FUTURE', 'HAVE_ENOUGH'];
+function ggLog(tag) {
+  if (!GG_LOAD_DEBUG) return;
+  const end = bufferedEndSec();
+  const pct = bufferedPercent();
+  let extra = '';
+  if (ggHeadBytes && effectiveDuration() > 0) {
+    const totalMb = (ggHeadBytes / 1048576).toFixed(1);
+    const dlMb = (ggHeadBytes * (end / effectiveDuration()) / 1048576).toFixed(1);
+    extra = ` | ~${dlMb}/${totalMb}MB`;
+  }
+  console.log('[GG load ' + ggElapsed() + '] ' + tag +
+    ' | net=' + NET[video.networkState] + ' ready=' + RDY[video.readyState] +
+    ' realDur=' + (Number.isFinite(video.duration) ? video.duration.toFixed(1) : 'NaN') +
+    ' vbDur=' + dur + ' buffered=' + end.toFixed(1) + 's' + (pct == null ? '' : ' (' + pct + '%)') +
+    extra + ' | ' + (video.currentSrc || '').split('/').pop());
+}
+function ggDiagnose() {
+  const url = video.currentSrc || (video.querySelector('source') && video.querySelector('source').src);
+  if (!url) return;
+  fetch(url, { method: 'HEAD' }).then(function (r) {
+    const len = r.headers.get('content-length');
+    if (len) ggHeadBytes = parseInt(len, 10);
+    console.log('[GG load] HEAD ' + r.status +
+      ' | size=' + (len ? (parseInt(len, 10) / 1048576).toFixed(1) + 'MB' : '?') +
+      ' | accept-ranges=' + (r.headers.get('accept-ranges') || 'none') +
+      ' | type=' + (r.headers.get('content-type') || '?') +
+      ' | cache=' + (r.headers.get('cf-cache-status') || r.headers.get('age') || '?'));
+    if (r.headers.get('accept-ranges') !== 'bytes') {
+      console.warn('[GG load] Server is NOT advertising byte-range support — the browser may download the whole file before it can start. Re-encoding with "-movflags +faststart" and serving with Accept-Ranges is the fix.');
+    }
+  }).catch(function (e) {
+    console.warn('[GG load] HEAD request failed (likely missing CORS headers on R2). The <video> still loads, but JS cannot read the byte size. Adding Access-Control-Allow-Origin to the bucket would enable byte-accurate progress.', e && e.message);
+  });
+}
+['loadstart', 'durationchange', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough', 'waiting', 'stalled', 'suspend', 'playing', 'error'].forEach(function (ev) {
+  video.addEventListener(ev, function () { ggLog(ev); });
+});
+let ggProgN = 0;
+video.addEventListener('progress', function () { if ((ggProgN++ % 3) === 0) ggLog('progress'); });
+ggDiagnose();
+
+// --- Prefetch the remaining clips, in order, once the current one is ready -
+// window.GG_PREFETCH is set per-module (the remaining parts' video URLs).
+let ggPrefetchStarted = false;
+function ggPrefetchNext() {
+  if (ggPrefetchStarted) return;
+  ggPrefetchStarted = true;
+  const list = (typeof window !== 'undefined' && Array.isArray(window.GG_PREFETCH)) ? window.GG_PREFETCH : [];
+  if (!list.length) { if (GG_LOAD_DEBUG) console.log('[GG prefetch] nothing queued'); return; }
+  let i = 0;
+  function step() {
+    if (i >= list.length) { if (GG_LOAD_DEBUG) console.log('[GG prefetch ' + ggElapsed() + '] all queued clips cached'); return; }
+    const url = list[i]; const idx = i; i++;
+    if (GG_LOAD_DEBUG) console.log('[GG prefetch ' + ggElapsed() + '] start (' + (idx + 1) + '/' + list.length + ') ' + url.split('/').pop());
+    const link = document.createElement('link');
+    link.rel = 'prefetch'; link.as = 'video'; link.href = url;
+    let advanced = false;
+    const go = function () { if (advanced) return; advanced = true; step(); };
+    link.addEventListener('load', function () { if (GG_LOAD_DEBUG) console.log('[GG prefetch ' + ggElapsed() + '] cached (' + (idx + 1) + '/' + list.length + ')'); go(); });
+    link.addEventListener('error', function () { if (GG_LOAD_DEBUG) console.warn('[GG prefetch] error (' + (idx + 1) + '/' + list.length + ') ' + url); go(); });
+    document.head.appendChild(link);
+    setTimeout(go, 45000); // failsafe so a silent prefetch never stalls the chain
+  }
+  step();
+}
+
+// Resolve once the clip has buffered enough to play through without stalling.
+// Falls back after a timeout so a flaky connection never hangs the player.
+function whenReadyToPlay(cb) {
+  if (video.readyState >= 4) { updateLoadingPercent(); cb(); return; }
+  let done = false;
+  function finish() {
+    if (done) return;
+    done = true;
+    video.removeEventListener('canplaythrough', finish);
+    video.removeEventListener('progress', onProg);
+    clearTimeout(failsafe);
+    cb();
+  }
+  function onProg() { updateLoadingPercent(); }
+  video.addEventListener('canplaythrough', finish);
+  video.addEventListener('progress', onProg);
+  const failsafe = setTimeout(finish, 15000);
+}
+
+// Smooth (per-frame) fade-to-black over the final 2 seconds of a clip.
+let fadeRAF = null;
+function fadeFrame() {
+  if (vidFadeBlack && video.style.display !== 'none') {
+    const d = (Number.isFinite(video.duration) && video.duration > 0) ? video.duration : dur;
+    if (Number.isFinite(d) && d > 0) {
+      const remaining = d - video.currentTime;
+      vidFadeBlack.style.opacity = (remaining <= 2 && remaining >= 0)
+        ? String(Math.min(1, (2 - remaining) / 2))
+        : '0';
+    }
+  }
+  fadeRAF = requestAnimationFrame(fadeFrame);
+}
+function startFadeLoop() { if (fadeRAF == null) fadeRAF = requestAnimationFrame(fadeFrame); }
+function stopFadeLoop() { if (fadeRAF != null) { cancelAnimationFrame(fadeRAF); fadeRAF = null; } }
+
+// First-play readiness gate: buffer (with spinner + %) before the intro card.
+let prepared = false;
+let preparing = false;
+function beginPlayback() {
+  if (prepared) { if (video.paused) video.play(); return; }
+  if (preparing) return;
+  preparing = true;
+  vidPlaceholder.style.display = 'none';
+  video.style.display = 'block';
+  playBtn.textContent = '❚❚';
+  showSpinner();
+  updateLoadingPercent();
+  whenReadyToPlay(() => {
+    preparing = false;
+    prepared = true;
+    hideSpinner();
+    const p = video.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => { playBtn.textContent = '▶'; isPlaying = false; updateHoverIcon(); });
+    }
+  });
+}
+
+// Block Picture-in-Picture, casting, and the right-click "save/PiP" menu.
+function lockDownMedia() {
+  try { video.disablePictureInPicture = true; } catch (e) {}
+  video.addEventListener('enterpictureinpicture', () => {
+    try { if (document.pictureInPictureElement) document.exitPictureInPicture(); } catch (e) {}
+  });
+  video.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+lockDownMedia();
 
 // --- Attention glow on the takeaways sidebar ------------------------------
 let attentionTimer = null;
@@ -120,7 +294,7 @@ function replayClip() {
 function togglePlay() {
   if (document.body.classList.contains('title-card-active')) return; // card self-advances
   if (video.ended) { replayClip(); return; }
-  if (!isPlaying && video.style.display === 'none') { startPlayback(); return; }
+  if (!prepared) { beginPlayback(); return; }
   if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
   else { video.pause(); playBtn.textContent = '▶'; }
   updateHoverIcon();
@@ -259,12 +433,14 @@ function showSectionTransition(sectionName, sectionLabel) {
   transitionTimeout = setTimeout(() => {
     sectionTransition.classList.remove('show');
     restoreBulletsAndListsAfterTitleCard();
+    subsUnlocked = true;
     // Draw the eye to the new section's takeaways as they slide back in.
     flashHighlights(false);
     
-    // Resume playback if it was playing before
+    // Resume playback if it was playing before (but not while the tab is hidden)
     if (wasPlaying) {
       setTimeout(() => {
+        if (document.hidden) { playBtn.textContent = '▶'; updateHoverIcon(); return; }
         const p = video.play();
         if (p && typeof p.catch === 'function') {
           // If the resume is interrupted, retry once the browser can play again.
@@ -398,9 +574,9 @@ function parseVTT(vttText) {
 
 function updateSubtitles(t) {
   const subsEl = document.getElementById('subsText');
-  // While a section title card is up, the video is paused at the boundary.
-  // Don't reveal the next section's first line until the speaker actually resumes.
-  if (document.body.classList.contains('title-card-active')) {
+  // Stay blank until the clip has loaded and the title card has finished,
+  // and whenever a section title card is on screen.
+  if (!subsUnlocked || document.body.classList.contains('title-card-active')) {
     subsEl.textContent = '—';
     return;
   }
@@ -436,12 +612,7 @@ video.addEventListener('loadedmetadata', () => {
 
 // Play button and placeholder click
 function startPlayback() {
-  vidPlaceholder.style.display = 'none';
-  video.style.display = 'block';
-  video.play();
-  isPlaying = true;
-  playBtn.textContent = '❚❚';
-  updateHoverIcon();
+  beginPlayback();
   renderTimelineMarkers();
 }
 
@@ -512,6 +683,7 @@ video.addEventListener('play', () => {
   isPlaying = true;
   playBtn.textContent = '❚❚';
   updateHoverIcon();
+  startFadeLoop();
 
   if (introCardArmed && video.currentTime < 2.5 && !isSeeking) {
     introCardArmed = false;
@@ -526,6 +698,7 @@ video.addEventListener('play', () => {
 
 video.addEventListener('pause', () => {
   isPlaying = false;
+  stopFadeLoop();
   // During a section title card the clip pauses itself and resumes on its own,
   // so keep the "playing" icon to signal no click is required.
   if (!document.body.classList.contains('title-card-active')) {
@@ -537,6 +710,7 @@ video.addEventListener('pause', () => {
 // End of clip: hold on black, glow the takeaways, and surface the next step.
 video.addEventListener('ended', () => {
   isPlaying = false;
+  stopFadeLoop();
   playBtn.textContent = '▶';
   updateHoverIcon();
   if (vidFadeBlack) vidFadeBlack.style.opacity = '1';
@@ -546,15 +720,24 @@ video.addEventListener('ended', () => {
 
 // Loading spinner — show whenever playback is waiting on data, hide once ready.
 video.addEventListener('loadstart', () => { if (!video.paused) showSpinner(); });
-video.addEventListener('waiting', showSpinner);
+video.addEventListener('waiting', () => { showSpinner(); updateLoadingPercent(); });
 video.addEventListener('stalled', () => { if (!video.paused) showSpinner(); });
 video.addEventListener('seeking', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('progress', () => { if (vidLoading && vidLoading.classList.contains('show')) updateLoadingPercent(); });
 video.addEventListener('playing', hideSpinner);
 video.addEventListener('canplay', hideSpinner);
 video.addEventListener('canplaythrough', hideSpinner);
+video.addEventListener('canplaythrough', ggPrefetchNext);
 video.addEventListener('seeked', hideSpinner);
 video.addEventListener('pause', hideSpinner);
 video.addEventListener('error', hideSpinner);
+
+// Pause automatically when the viewer switches to another tab/window.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && !video.paused && !video.ended && video.style.display !== 'none') {
+    video.pause();
+  }
+});
 
 // End-card buttons
 if (vidEndcardNext) vidEndcardNext.addEventListener('click', (e) => { e.stopPropagation(); navigateNext(); });
@@ -739,6 +922,7 @@ function onT(t){
   const m=Math.floor(t/60),s=Math.floor(t%60).toString().padStart(2,'0');
   document.getElementById('tDisp').textContent=`${m}:${s}`;
   
+  if (!subsUnlocked && t > 0.4 && !document.body.classList.contains('title-card-active')) subsUnlocked = true;
   updateSubtitles(t);
   updateVideoCallouts(t);
   updateDisplay(t);

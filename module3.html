@@ -211,21 +211,6 @@ body.light-mode .section-transition-accent { background: linear-gradient(90deg, 
 @keyframes ggSpin { to { transform:rotate(360deg); } }
 /* ADDED: fade-to-black at clip end (hides the held final frame) */
 .vid-fade-black { position:absolute; inset:0; z-index:9; background:#000; opacity:0; pointer-events:none; }
-/* ADDED: attention glow on the action panel when a video ends */
-.follow-btn-container.attention { animation: ggPanelPulse 1.6s ease-in-out infinite; }
-@keyframes ggPanelPulse {
-  0%,100% { box-shadow: inset 0 0 0 1px rgba(201,168,76,.25); }
-  50%     { box-shadow: inset 0 0 0 2px var(--gold), 0 0 26px 2px rgba(201,168,76,.4); }
-}
-body.light-mode .follow-btn-container.attention { animation-name: ggPanelPulseLight; }
-@keyframes ggPanelPulseLight {
-  0%,100% { box-shadow: inset 0 0 0 1px rgba(26,74,46,.25); }
-  50%     { box-shadow: inset 0 0 0 2px var(--teal), 0 0 26px 2px rgba(26,74,46,.3); }
-}
-/* ADDED: back-to-library button surfaced when the final video ends */
-.endback-btn { display:none; flex-direction:column; align-items:center; gap:8px; padding:18px 24px; font-size:.75rem; font-weight:600; color:var(--ink); background:var(--s3); border:1px solid var(--border); cursor:pointer; text-transform:uppercase; letter-spacing:.08em; width:100%; margin-top:16px; transition:all .3s; }
-.endback-btn:hover { background:var(--gold); color:var(--bg); border-color:var(--gold); transform:translateY(-1px); }
-body.light-mode .endback-btn:hover { background:var(--teal); color:#fff; border-color:var(--teal); }
 </style>
 </head>
 <body>
@@ -276,7 +261,7 @@ body.light-mode .endback-btn:hover { background:var(--teal); color:#fff; border-
               <div class="vid-ph-desc" id="placeholderDesc">Click to begin the walkthrough.</div>
             </div>
           </div>
-          <video id="trainingVideo" preload="metadata" playsinline></video>
+          <video id="trainingVideo" preload="auto" playsinline disablePictureInPicture disableRemotePlayback controlsList="nodownload noplaybackrate nopictureinpicture noremoteplayback"></video>
           <!-- Section title card overlay -->
           <div class="section-transition-overlay" id="sectionTransition">
             <div class="section-transition-label" id="transitionLabel">NOW PLAYING</div>
@@ -318,7 +303,6 @@ body.light-mode .endback-btn:hover { background:var(--teal); color:#fff; border-
           Next Video →
           <div class="next-btn-title" id="nextBtnTitle"></div>
         </button>
-        <button class="endback-btn" id="endBackBtn">↩ Back to Library</button>
       </div>
     </div>
   </div>
@@ -436,6 +420,42 @@ const endBackBtn = document.getElementById('endBackBtn');
 function showSpinner() { if (vidLoading) vidLoading.classList.add('show'); }
 function hideSpinner() { if (vidLoading) vidLoading.classList.remove('show'); }
 
+function bufferedPercent() {
+  try {
+    const d = video.duration;
+    if (!Number.isFinite(d) || d <= 0 || !video.buffered || video.buffered.length === 0) return null;
+    let end = 0;
+    for (let i = 0; i < video.buffered.length; i++) {
+      if (video.buffered.start(i) <= video.currentTime + 0.25) end = Math.max(end, video.buffered.end(i));
+    }
+    return Math.max(0, Math.min(100, Math.round((end / d) * 100)));
+  } catch (e) { return null; }
+}
+function updateLoadingPercent() {
+  if (!vidLoading) return;
+  const textEl = vidLoading.querySelector('.vid-loading-text');
+  if (!textEl) return;
+  const p = bufferedPercent();
+  textEl.textContent = (p == null) ? 'Loading video…' : ('Loading video… ' + p + '%');
+}
+// Resolve once the clip can play through without stalling (with a failsafe).
+function whenReadyToPlay(cb) {
+  if (video.readyState >= 4) { updateLoadingPercent(); cb(); return; }
+  let done = false;
+  function finish() {
+    if (done) return;
+    done = true;
+    video.removeEventListener('canplaythrough', finish);
+    video.removeEventListener('progress', onProg);
+    clearTimeout(failsafe);
+    cb();
+  }
+  function onProg() { updateLoadingPercent(); }
+  video.addEventListener('canplaythrough', finish);
+  video.addEventListener('progress', onProg);
+  const failsafe = setTimeout(finish, 15000);
+}
+
 // Ramp a black overlay over the final 2s so the held last frame is never shown.
 function applyEndFade() {
   if (!vidFadeBlack) return;
@@ -446,6 +466,20 @@ function applyEndFade() {
   if (remaining <= 2 && remaining >= 0) vidFadeBlack.style.opacity = String(Math.min(1, (2 - remaining) / 2));
   else vidFadeBlack.style.opacity = '0';
 }
+// Per-frame fade loop so the fade is smooth (timeupdate alone is too coarse).
+let fadeRAF = null;
+function fadeFrame() { applyEndFade(); fadeRAF = requestAnimationFrame(fadeFrame); }
+function startFadeLoop() { if (fadeRAF == null) fadeRAF = requestAnimationFrame(fadeFrame); }
+function stopFadeLoop() { if (fadeRAF != null) { cancelAnimationFrame(fadeRAF); fadeRAF = null; } }
+
+// Block Picture-in-Picture, casting, and the right-click "save/PiP" menu.
+(function lockDownMedia() {
+  try { video.disablePictureInPicture = true; } catch (e) {}
+  video.addEventListener('enterpictureinpicture', () => {
+    try { if (document.pictureInPictureElement) document.exitPictureInPicture(); } catch (e) {}
+  });
+  video.addEventListener('contextmenu', (e) => e.preventDefault());
+})();
 
 function videoSrc(id) { return `${BASE}${id}.mp4`; }
 function vttSrc(id) { return `${BASE}${id}.vtt`; }
@@ -455,6 +489,7 @@ function updateHoverIcon() {
 }
 
 let titleCardActive = false;
+let subsUnlocked = false;
 
 function showTitleCard(title) {
   if (transitionTimeout) clearTimeout(transitionTimeout);
@@ -474,10 +509,14 @@ function showTitleCard(title) {
     transitionTimeout = setTimeout(() => {
       titleCardActive = false;
       transitionTimeout = null;
-      video.play();
+      subsUnlocked = true;
+      const p = video.play();
       playBtn.textContent = '❚❚';
       isPlaying = true;
       updateHoverIcon();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => { playBtn.textContent = '▶'; isPlaying = false; updateHoverIcon(); });
+      }
     }, 650);
   }, 3500);
 }
@@ -504,6 +543,7 @@ function openVideo(id) {
   scrubFill.style.width = '0%';
   scrubDot.style.left = '0%';
   subsText.textContent = '—';
+  subsUnlocked = false;
   if (vidFadeBlack) vidFadeBlack.style.opacity = '0';
   hideSpinner();
   if (followContainer) followContainer.classList.remove('attention');
@@ -521,8 +561,15 @@ function openVideo(id) {
   playerView.classList.add('active');
   window.scrollTo(0, 0);
   loadVTT(vttSrc(id));
-  // Show title card animation
-  showTitleCard(meta.title);
+  // Buffer the clip first (spinner + %), then reveal the title card, so the
+  // video never starts on a black, still-loading frame.
+  video.style.display = 'block';
+  showSpinner();
+  updateLoadingPercent();
+  whenReadyToPlay(() => {
+    hideSpinner();
+    showTitleCard(meta.title);
+  });
 }
 
 function closeVideo() {
@@ -595,8 +642,8 @@ function loadVTT(url) {
 }
 
 function updateSubtitles(t) {
-  // Don't reveal the first line while the title card is up — wait for the speaker.
-  if (titleCardActive) { subsText.textContent = '—'; return; }
+  // Stay blank until the clip has loaded and the title card has finished.
+  if (!subsUnlocked || titleCardActive) { subsText.textContent = '—'; return; }
   const currentSub = subtitles.find(s => t >= s.start && t <= s.end) || subtitles.filter(s => t >= s.start).pop();
   subsText.textContent = currentSub ? currentSub.text : '—';
 }
@@ -643,31 +690,30 @@ video.addEventListener('timeupdate', () => {
   updateSubtitles(t);
   applyEndFade();
 });
-video.addEventListener('play', () => { isPlaying = true; playBtn.textContent = '❚❚'; updateHoverIcon(); });
+video.addEventListener('play', () => { isPlaying = true; playBtn.textContent = '❚❚'; updateHoverIcon(); startFadeLoop(); });
 video.addEventListener('pause', () => {
   isPlaying = false;
+  stopFadeLoop();
   // Keep the playing icon while the auto-advancing title card is up.
   if (!titleCardActive) playBtn.textContent = '▶';
   updateHoverIcon();
 });
 
-// End of clip: hold on black, glow the action panel, and make the next step clear.
+// End of clip: hold on black; the existing Next / Library controls handle navigation.
 video.addEventListener('ended', () => {
   isPlaying = false;
+  stopFadeLoop();
   playBtn.textContent = '▶';
   updateHoverIcon();
   if (vidFadeBlack) vidFadeBlack.style.opacity = '1';
-  if (followContainer) followContainer.classList.add('attention');
-  const idx = videos.findIndex(v => v.id === (currentVideoMeta && currentVideoMeta.id));
-  const hasNext = idx >= 0 && !!videos[idx + 1];
-  if (endBackBtn) endBackBtn.style.display = hasNext ? 'none' : 'flex';
 });
 
 // Loading spinner — reassure on slow connections that real content is coming.
 video.addEventListener('loadstart', () => { if (!video.paused) showSpinner(); });
-video.addEventListener('waiting', showSpinner);
+video.addEventListener('waiting', () => { showSpinner(); updateLoadingPercent(); });
 video.addEventListener('stalled', () => { if (!video.paused) showSpinner(); });
 video.addEventListener('seeking', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('progress', () => { if (vidLoading && vidLoading.classList.contains('show')) updateLoadingPercent(); });
 video.addEventListener('playing', hideSpinner);
 video.addEventListener('canplay', hideSpinner);
 video.addEventListener('canplaythrough', hideSpinner);
@@ -681,6 +727,7 @@ if (endBackBtn) endBackBtn.addEventListener('click', closeVideo);
 document.addEventListener('keydown', (e) => {
   if (e.code !== 'Space' && e.key !== ' ') return;
   if (!playerView.classList.contains('active')) return;
+  if (document.hidden) return; // only act when this tab is in front
   const el = document.activeElement;
   const tag = el ? el.tagName : '';
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || (el && el.isContentEditable)) return;
@@ -690,10 +737,6 @@ document.addEventListener('keydown', (e) => {
   if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
   else { video.pause(); playBtn.textContent = '▶'; }
   updateHoverIcon();
-});
-// Pause when tab is hidden
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && !video.paused) video.pause();
 });
 scrubBar.addEventListener('click', e => {
   const rect = scrubBar.getBoundingClientRect();
