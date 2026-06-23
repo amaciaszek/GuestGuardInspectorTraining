@@ -1087,3 +1087,156 @@ body.light-mode .grp.enter .grp-dot {
     padding: 24px 20px;
   }
 }
+
+
+/* ============================================================
+   ADDED: shared player enhancements (Modules 1 & 2)
+   ============================================================ */
+
+/* Header back-to-modules link */
+.hdr-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: color .2s, border-color .2s, background-color .2s, transform .08s;
+  flex-shrink: 0;
+}
+.hdr-back:hover { color: var(--gold); border-color: var(--gold); }
+body.light-mode .hdr-back:hover { color: var(--teal); border-color: var(--teal); }
+.hdr-back:active { transform: translateY(1px); }
+.hdr-back-arrow { font-size: .95rem; line-height: 1; }
+
+/* Loading spinner — reassures on slow connections that real content is coming */
+.vid-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s ease, visibility .25s ease;
+  pointer-events: none;
+}
+.vid-loading.show { opacity: 1; visibility: visible; }
+.vid-loading-spinner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 3px solid rgba(201,168,76,.25);
+  border-top-color: var(--gold);
+  animation: ggSpin 0.9s linear infinite;
+}
+body.light-mode .vid-loading-spinner {
+  border-color: rgba(255,255,255,.2);
+  border-top-color: var(--gold-hi);
+}
+.vid-loading-text {
+  font-family: var(--mono);
+  font-size: .78rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #EEE8DA;
+}
+@keyframes ggSpin { to { transform: rotate(360deg); } }
+
+/* Fade-to-black overlay — hides the frozen final frame at the end of each clip */
+.vid-fade-black {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* End-of-clip "Up Next" overlay, shown on the black screen after a clip ends */
+.vid-endcard {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 40px;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .4s ease, visibility .4s ease;
+}
+.vid-endcard.show { opacity: 1; visibility: visible; }
+.vid-endcard-label {
+  font-family: var(--mono);
+  font-size: .8rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+body.light-mode .vid-endcard-label { color: var(--gold-hi); }
+.vid-endcard-title {
+  font-family: var(--display);
+  font-size: clamp(1.6rem, 2.6vw, 2.6rem);
+  font-weight: 600;
+  color: #EEE8DA;
+  text-align: center;
+  line-height: 1.15;
+  max-width: 640px;
+}
+.vid-endcard-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.vid-endcard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--sans);
+  font-size: .9rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 13px 22px;
+  border: 1px solid var(--gold);
+  background: linear-gradient(135deg, var(--gold), var(--gold-hi));
+  color: #161A24;
+  transition: transform .12s ease, box-shadow .2s ease;
+}
+.vid-endcard-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(201,168,76,.4); }
+body.light-mode .vid-endcard-btn { border-color: var(--teal); background: var(--teal); color: #fff; }
+.vid-endcard-btn.secondary {
+  background: transparent;
+  color: #EEE8DA;
+  border-color: rgba(238,232,218,.4);
+}
+.vid-endcard-btn.secondary:hover { border-color: #EEE8DA; box-shadow: none; }
+.vid-endcard-replay-icon { font-size: 1rem; }
+
+/* Attention glow on the takeaways sidebar — pulses at breakpoints and at clip end */
+.bul-side.attention {
+  animation: ggHighlightPulse 1.6s ease-in-out infinite;
+  border-radius: 4px;
+}
+@keyframes ggHighlightPulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(201,168,76,.25), 0 0 0 0 rgba(201,168,76,0); }
+  50%      { box-shadow: inset 0 0 0 2px var(--gold), 0 0 26px 2px rgba(201,168,76,.45); }
+}
+body.light-mode .bul-side.attention { animation-name: ggHighlightPulseLight; }
+@keyframes ggHighlightPulseLight {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(26,74,46,.25), 0 0 0 0 rgba(26,74,46,0); }
+  50%      { box-shadow: inset 0 0 0 2px var(--teal), 0 0 26px 2px rgba(26,74,46,.35); }
+}

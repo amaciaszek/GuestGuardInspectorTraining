@@ -156,8 +156,8 @@ body.light-mode .vid-ph-icon { background: var(--ink); }
 video { display: none; width: 100%; height: 100%; object-fit: contain; background: var(--s2); z-index: 2; }
 .vid-subs { padding: 18px 32px; background: var(--s2); border-top: 1px solid var(--border); min-height: 78px; display: flex; align-items: center; justify-content: center; }
 .vid-subs-text { font-size: 1.1rem; color: var(--ink); line-height: 1.6; text-align: center; font-weight: 400; max-width: 1200px; }
-.scrub { height: 12px; background: var(--s3); position: relative; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,.4); border-top: 1px solid var(--border); }
-body.light-mode .scrub { height: 4px; box-shadow: none; }
+.scrub { height: 14px; background: var(--s3); position: relative; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,.4); border-top: 1px solid var(--border); }
+body.light-mode .scrub { height: 14px; box-shadow: none; }
 .scrub-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-hi)); width: 0%; transition: width .1s linear; box-shadow: 0 0 12px rgba(201,168,76,.6); }
 body.light-mode .scrub-fill { background: var(--teal); box-shadow: none; }
 .scrub-dot { position: absolute; top: 50%; width: 20px; height: 20px; background: var(--gold); border: 3px solid var(--bg); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,.6); z-index: 2; }
@@ -203,6 +203,29 @@ body.light-mode .section-transition-accent { background: linear-gradient(90deg, 
   .follow-btn-container { width: 100%; border-left: none; border-top: 1px solid var(--border); padding: 1.5rem; }
   .follow-btn { max-width: 340px; } .player-subtitle { display:none; }
 }
+/* ADDED: loading spinner for slow connections */
+.vid-loading { position:absolute; inset:0; z-index:13; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; background:#000; opacity:0; visibility:hidden; transition:opacity .25s ease, visibility .25s ease; pointer-events:none; }
+.vid-loading.show { opacity:1; visibility:visible; }
+.vid-loading-spinner { width:54px; height:54px; border-radius:50%; border:3px solid rgba(201,168,76,.25); border-top-color:var(--gold); animation:ggSpin .9s linear infinite; }
+.vid-loading-text { font-family:var(--mono); font-size:.78rem; letter-spacing:.18em; text-transform:uppercase; color:#EEE8DA; }
+@keyframes ggSpin { to { transform:rotate(360deg); } }
+/* ADDED: fade-to-black at clip end (hides the held final frame) */
+.vid-fade-black { position:absolute; inset:0; z-index:9; background:#000; opacity:0; pointer-events:none; }
+/* ADDED: attention glow on the action panel when a video ends */
+.follow-btn-container.attention { animation: ggPanelPulse 1.6s ease-in-out infinite; }
+@keyframes ggPanelPulse {
+  0%,100% { box-shadow: inset 0 0 0 1px rgba(201,168,76,.25); }
+  50%     { box-shadow: inset 0 0 0 2px var(--gold), 0 0 26px 2px rgba(201,168,76,.4); }
+}
+body.light-mode .follow-btn-container.attention { animation-name: ggPanelPulseLight; }
+@keyframes ggPanelPulseLight {
+  0%,100% { box-shadow: inset 0 0 0 1px rgba(26,74,46,.25); }
+  50%     { box-shadow: inset 0 0 0 2px var(--teal), 0 0 26px 2px rgba(26,74,46,.3); }
+}
+/* ADDED: back-to-library button surfaced when the final video ends */
+.endback-btn { display:none; flex-direction:column; align-items:center; gap:8px; padding:18px 24px; font-size:.75rem; font-weight:600; color:var(--ink); background:var(--s3); border:1px solid var(--border); cursor:pointer; text-transform:uppercase; letter-spacing:.08em; width:100%; margin-top:16px; transition:all .3s; }
+.endback-btn:hover { background:var(--gold); color:var(--bg); border-color:var(--gold); transform:translateY(-1px); }
+body.light-mode .endback-btn:hover { background:var(--teal); color:#fff; border-color:var(--teal); }
 </style>
 </head>
 <body>
@@ -264,6 +287,13 @@ body.light-mode .section-transition-accent { background: linear-gradient(90deg, 
           <div class="vid-hover-overlay" id="hoverOverlay">
             <div class="vid-hover-icon" id="hoverIcon">▶</div>
           </div>
+          <!-- ADDED: fade-to-black at clip end -->
+          <div class="vid-fade-black" id="vidFadeBlack"></div>
+          <!-- ADDED: loading spinner for slow connections -->
+          <div class="vid-loading" id="vidLoading">
+            <div class="vid-loading-spinner"></div>
+            <div class="vid-loading-text">Loading video…</div>
+          </div>
         </div>
         <div class="vid-subs"><div class="vid-subs-text" id="subsText">—</div></div>
         <div class="scrub" id="scrubBar"><div class="scrub-fill" id="scrubFill"></div><div class="scrub-dot" id="scrubDot"></div></div>
@@ -288,6 +318,7 @@ body.light-mode .section-transition-accent { background: linear-gradient(90deg, 
           Next Video →
           <div class="next-btn-title" id="nextBtnTitle"></div>
         </button>
+        <button class="endback-btn" id="endBackBtn">↩ Back to Library</button>
       </div>
     </div>
   </div>
@@ -397,6 +428,24 @@ const hoverOverlay = document.getElementById('hoverOverlay');
 const hoverIcon = document.getElementById('hoverIcon');
 const sectionTransition = document.getElementById('sectionTransition');
 const transitionTitle = document.getElementById('transitionTitle');
+const vidLoading = document.getElementById('vidLoading');
+const vidFadeBlack = document.getElementById('vidFadeBlack');
+const followContainer = document.querySelector('.follow-btn-container');
+const endBackBtn = document.getElementById('endBackBtn');
+
+function showSpinner() { if (vidLoading) vidLoading.classList.add('show'); }
+function hideSpinner() { if (vidLoading) vidLoading.classList.remove('show'); }
+
+// Ramp a black overlay over the final 2s so the held last frame is never shown.
+function applyEndFade() {
+  if (!vidFadeBlack) return;
+  if (video.style.display === 'none') { vidFadeBlack.style.opacity = '0'; return; }
+  const d = video.duration;
+  if (!Number.isFinite(d) || d <= 0) return;
+  const remaining = d - video.currentTime;
+  if (remaining <= 2 && remaining >= 0) vidFadeBlack.style.opacity = String(Math.min(1, (2 - remaining) / 2));
+  else vidFadeBlack.style.opacity = '0';
+}
 
 function videoSrc(id) { return `${BASE}${id}.mp4`; }
 function vttSrc(id) { return `${BASE}${id}.vtt`; }
@@ -415,6 +464,10 @@ function showTitleCard(title) {
   video.style.display = 'block';
   transitionTitle.textContent = title;
   sectionTransition.classList.add('show');
+  // The card dismisses and plays on its own, so show the "playing" icon now
+  // and hold the subtitles until the speaker actually starts.
+  playBtn.textContent = '❚❚';
+  subsText.textContent = '—';
   // Dismiss after 3.5s, then wait for the 0.6s CSS fade before playing
   transitionTimeout = setTimeout(() => {
     sectionTransition.classList.remove('show');
@@ -451,6 +504,10 @@ function openVideo(id) {
   scrubFill.style.width = '0%';
   scrubDot.style.left = '0%';
   subsText.textContent = '—';
+  if (vidFadeBlack) vidFadeBlack.style.opacity = '0';
+  hideSpinner();
+  if (followContainer) followContainer.classList.remove('attention');
+  if (endBackBtn) endBackBtn.style.display = 'none';
   playerTitle.textContent = meta.title;
   playerSubtitle.textContent = meta.category;
   placeholderTitle.textContent = meta.title;
@@ -474,6 +531,10 @@ function closeVideo() {
   video.load();
   isPlaying = false;
   titleCardActive = false;
+  if (followContainer) followContainer.classList.remove('attention');
+  if (endBackBtn) endBackBtn.style.display = 'none';
+  if (vidFadeBlack) vidFadeBlack.style.opacity = '0';
+  hideSpinner();
   if (transitionTimeout) { clearTimeout(transitionTimeout); transitionTimeout = null; }
   sectionTransition.classList.remove('show');
   playerView.classList.remove('active');
@@ -534,6 +595,8 @@ function loadVTT(url) {
 }
 
 function updateSubtitles(t) {
+  // Don't reveal the first line while the title card is up — wait for the speaker.
+  if (titleCardActive) { subsText.textContent = '—'; return; }
   const currentSub = subtitles.find(s => t >= s.start && t <= s.end) || subtitles.filter(s => t >= s.start).pop();
   subsText.textContent = currentSub ? currentSub.text : '—';
 }
@@ -578,9 +641,56 @@ video.addEventListener('timeupdate', () => {
   if (t > maxWatched) maxWatched = t;
   updateProgress(t, video.duration);
   updateSubtitles(t);
+  applyEndFade();
 });
 video.addEventListener('play', () => { isPlaying = true; playBtn.textContent = '❚❚'; updateHoverIcon(); });
-video.addEventListener('pause', () => { isPlaying = false; playBtn.textContent = '▶'; updateHoverIcon(); });
+video.addEventListener('pause', () => {
+  isPlaying = false;
+  // Keep the playing icon while the auto-advancing title card is up.
+  if (!titleCardActive) playBtn.textContent = '▶';
+  updateHoverIcon();
+});
+
+// End of clip: hold on black, glow the action panel, and make the next step clear.
+video.addEventListener('ended', () => {
+  isPlaying = false;
+  playBtn.textContent = '▶';
+  updateHoverIcon();
+  if (vidFadeBlack) vidFadeBlack.style.opacity = '1';
+  if (followContainer) followContainer.classList.add('attention');
+  const idx = videos.findIndex(v => v.id === (currentVideoMeta && currentVideoMeta.id));
+  const hasNext = idx >= 0 && !!videos[idx + 1];
+  if (endBackBtn) endBackBtn.style.display = hasNext ? 'none' : 'flex';
+});
+
+// Loading spinner — reassure on slow connections that real content is coming.
+video.addEventListener('loadstart', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('waiting', showSpinner);
+video.addEventListener('stalled', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('seeking', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('playing', hideSpinner);
+video.addEventListener('canplay', hideSpinner);
+video.addEventListener('canplaythrough', hideSpinner);
+video.addEventListener('seeked', hideSpinner);
+video.addEventListener('pause', hideSpinner);
+video.addEventListener('error', hideSpinner);
+
+if (endBackBtn) endBackBtn.addEventListener('click', closeVideo);
+
+// Spacebar toggles play/pause while the player is open.
+document.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' && e.key !== ' ') return;
+  if (!playerView.classList.contains('active')) return;
+  const el = document.activeElement;
+  const tag = el ? el.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || (el && el.isContentEditable)) return;
+  e.preventDefault();
+  if (titleCardActive) return; // card self-advances
+  if (video.style.display === 'none' || !video.src) { startPlayback(); return; }
+  if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
+  else { video.pause(); playBtn.textContent = '▶'; }
+  updateHoverIcon();
+});
 // Pause when tab is hidden
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && !video.paused) video.pause();
@@ -591,6 +701,8 @@ scrubBar.addEventListener('click', e => {
   const targetT = clickPct * video.duration;
   // DEBUG MODE: scrubbing unrestricted — remove this comment and restore maxWatched check for production
   video.currentTime = targetT;
+  if (followContainer) followContainer.classList.remove('attention');
+  if (endBackBtn) endBackBtn.style.display = 'none';
 });
 // Rewind 10 seconds. Setting currentTime fires timeupdate, which refreshes progress + subtitles.
 const rewindBtn = document.getElementById('rewindBtn');

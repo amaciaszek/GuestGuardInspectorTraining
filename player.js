@@ -25,6 +25,107 @@ const videoCallout = document.getElementById('videoCallout');
 const videoCalloutTitle = document.getElementById('videoCalloutTitle');
 const videoCalloutList = document.getElementById('videoCalloutList');
 
+// Added enhancement elements (present in the module HTML)
+const bulSide = document.querySelector('.bul-side');
+const vidLoading = document.getElementById('vidLoading');
+const vidFadeBlack = document.getElementById('vidFadeBlack');
+const vidEndcard = document.getElementById('vidEndcard');
+const vidEndcardTitle = document.getElementById('vidEndcardTitle');
+const vidEndcardNext = document.getElementById('vidEndcardNext');
+const vidEndcardReplay = document.getElementById('vidEndcardReplay');
+// Where the "next" button should send the viewer (set per-module before player.js loads).
+const NEXT_TARGET = (typeof window !== 'undefined' && window.GG_NEXT) ? window.GG_NEXT : null;
+
+// --- Loading spinner ------------------------------------------------------
+// Reassures viewers on slow connections that real content is on the way.
+function showSpinner() { if (vidLoading) vidLoading.classList.add('show'); }
+function hideSpinner() { if (vidLoading) vidLoading.classList.remove('show'); }
+
+// --- Attention glow on the takeaways sidebar ------------------------------
+let attentionTimer = null;
+function flashHighlights(persist) {
+  if (!bulSide) return;
+  if (attentionTimer) { clearTimeout(attentionTimer); attentionTimer = null; }
+  bulSide.classList.add('attention');
+  if (!persist) {
+    attentionTimer = setTimeout(() => { bulSide.classList.remove('attention'); attentionTimer = null; }, 5200);
+  }
+}
+function clearHighlights() {
+  if (attentionTimer) { clearTimeout(attentionTimer); attentionTimer = null; }
+  if (bulSide) bulSide.classList.remove('attention');
+}
+
+// --- Fade-to-black at clip end --------------------------------------------
+// Ramps a black overlay over the final 2 seconds so the frozen last frame
+// (a held shot of the presenter) is never shown — just black.
+function applyEndFade(t) {
+  if (!vidFadeBlack) return;
+  if (video.style.display === 'none') { vidFadeBlack.style.opacity = '0'; return; }
+  const d = (Number.isFinite(video.duration) && video.duration > 0) ? video.duration : dur;
+  if (!Number.isFinite(d) || d <= 0) return;
+  const remaining = d - t;
+  if (remaining <= 2 && remaining >= 0) {
+    vidFadeBlack.style.opacity = String(Math.min(1, (2 - remaining) / 2));
+  } else {
+    vidFadeBlack.style.opacity = '0';
+  }
+}
+
+// --- End-of-clip "Up Next" card -------------------------------------------
+function showEndcard() {
+  if (!vidEndcard) return;
+  const label = document.getElementById('vidEndcardLabel');
+  if (NEXT_TARGET && NEXT_TARGET.title) {
+    if (label) label.textContent = NEXT_TARGET.kind === 'module' ? 'Up Next — New Module' : 'Up Next';
+    if (vidEndcardTitle) vidEndcardTitle.textContent = NEXT_TARGET.title;
+    if (vidEndcardNext) vidEndcardNext.textContent = 'Continue →';
+  } else {
+    if (label) label.textContent = 'Module Complete';
+    if (vidEndcardTitle) vidEndcardTitle.textContent = "You've finished this module.";
+    if (vidEndcardNext) vidEndcardNext.textContent = 'Back to Modules';
+  }
+  vidEndcard.classList.add('show');
+}
+function hideEndcard() {
+  if (vidEndcard) vidEndcard.classList.remove('show');
+}
+function navigateNext() {
+  if (NEXT_TARGET && NEXT_TARGET.hash) {
+    location.hash = NEXT_TARGET.hash;
+    location.reload();
+  } else if (NEXT_TARGET && NEXT_TARGET.href) {
+    location.href = NEXT_TARGET.href;
+  } else {
+    location.href = 'index.html';
+  }
+}
+function replayClip() {
+  hideEndcard();
+  clearHighlights();
+  if (vidFadeBlack) vidFadeBlack.style.opacity = '0';
+  lastShownSectionIdx = -1;
+  currentGroupIdx = -1;
+  currentCalloutIdx = -1;
+  isSeeking = true;
+  video.currentTime = 0;
+  maxWatched = 0;
+  onT(0);
+  const p = video.play();
+  if (p && typeof p.catch === 'function') p.catch(() => {});
+  setTimeout(() => { isSeeking = false; }, 400);
+}
+
+// --- Shared play/pause toggle (used by button, video click, and spacebar) ---
+function togglePlay() {
+  if (document.body.classList.contains('title-card-active')) return; // card self-advances
+  if (video.ended) { replayClip(); return; }
+  if (!isPlaying && video.style.display === 'none') { startPlayback(); return; }
+  if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
+  else { video.pause(); playBtn.textContent = '▶'; }
+  updateHoverIcon();
+}
+
 // Timed overlays for narration moments where the script lists numbered items.
 // These are intentionally short and left-weighted so they support the narration without covering the room view.
 const CALLOUTS = GG_PLAYER.callouts;
@@ -137,14 +238,15 @@ function showSectionTransition(sectionName, sectionLabel) {
     clearTimeout(transitionTimeout);
   }
   
+  // Mark the title-card state BEFORE pausing so the pause handler knows this is
+  // an automatic, self-resuming pause and keeps the "playing" (❚❚) icon.
+  clearBulletsAndListsForTitleCard();
+
   // Pause the video
   const wasPlaying = !video.paused;
   if (wasPlaying) {
     video.pause();
   }
-  
-  // Clear every list/bullet display before the section title card appears.
-  clearBulletsAndListsForTitleCard();
 
   // Update text
   transitionLabel.textContent = sectionLabel;
@@ -157,6 +259,8 @@ function showSectionTransition(sectionName, sectionLabel) {
   transitionTimeout = setTimeout(() => {
     sectionTransition.classList.remove('show');
     restoreBulletsAndListsAfterTitleCard();
+    // Draw the eye to the new section's takeaways as they slide back in.
+    flashHighlights(false);
     
     // Resume playback if it was playing before
     if (wasPlaying) {
@@ -293,6 +397,13 @@ function parseVTT(vttText) {
 }
 
 function updateSubtitles(t) {
+  const subsEl = document.getElementById('subsText');
+  // While a section title card is up, the video is paused at the boundary.
+  // Don't reveal the next section's first line until the speaker actually resumes.
+  if (document.body.classList.contains('title-card-active')) {
+    subsEl.textContent = '—';
+    return;
+  }
   // Nudge subtitle lookup slightly later so lines do not feel ahead of the audio.
   const subT = Math.max(0, t - SUBTITLE_SYNC_DELAY);
   let currentIdx = -1;
@@ -302,7 +413,6 @@ function updateSubtitles(t) {
   }
 
   const currentSub = currentIdx >= 0 ? subtitles[currentIdx] : null;
-  const subsEl = document.getElementById('subsText');
 
   if(currentSub) {
     subsEl.textContent = currentSub.text;
@@ -338,18 +448,7 @@ function startPlayback() {
 vidPlaceholder.addEventListener('click', startPlayback);
 
 playBtn.addEventListener('click', () => {
-  if(!isPlaying && video.style.display === 'none') {
-    startPlayback();
-  } else {
-    if(video.paused) {
-      video.play();
-      playBtn.textContent = '❚❚';
-    } else {
-      video.pause();
-      playBtn.textContent = '▶';
-    }
-    updateHoverIcon();
-  }
+  togglePlay();
 });
 
 // Rewind the video by 10 seconds, replaying any section cards passed over.
@@ -365,6 +464,8 @@ function rewind10() {
   // Hide any active section title card.
   sectionTransition.classList.remove('show');
   restoreBulletsAndListsAfterTitleCard();
+  hideEndcard();
+  clearHighlights();
 
   // Allow the section transition for the landing point to replay.
   let targetIdx = -1;
@@ -391,14 +492,7 @@ if (rewindBtn) {
 vidBox.addEventListener('click', (e) => {
   if(e.target === video || e.target === vidBox) {
     if(video.style.display !== 'none') {
-      if(video.paused) {
-        video.play();
-        playBtn.textContent = '❚❚';
-      } else {
-        video.pause();
-        playBtn.textContent = '▶';
-      }
-      updateHoverIcon();
+      togglePlay();
     }
   }
 });
@@ -432,8 +526,49 @@ video.addEventListener('play', () => {
 
 video.addEventListener('pause', () => {
   isPlaying = false;
+  // During a section title card the clip pauses itself and resumes on its own,
+  // so keep the "playing" icon to signal no click is required.
+  if (!document.body.classList.contains('title-card-active')) {
+    playBtn.textContent = '▶';
+  }
+  updateHoverIcon();
+});
+
+// End of clip: hold on black, glow the takeaways, and surface the next step.
+video.addEventListener('ended', () => {
+  isPlaying = false;
   playBtn.textContent = '▶';
   updateHoverIcon();
+  if (vidFadeBlack) vidFadeBlack.style.opacity = '1';
+  flashHighlights(true);
+  showEndcard();
+});
+
+// Loading spinner — show whenever playback is waiting on data, hide once ready.
+video.addEventListener('loadstart', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('waiting', showSpinner);
+video.addEventListener('stalled', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('seeking', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('playing', hideSpinner);
+video.addEventListener('canplay', hideSpinner);
+video.addEventListener('canplaythrough', hideSpinner);
+video.addEventListener('seeked', hideSpinner);
+video.addEventListener('pause', hideSpinner);
+video.addEventListener('error', hideSpinner);
+
+// End-card buttons
+if (vidEndcardNext) vidEndcardNext.addEventListener('click', (e) => { e.stopPropagation(); navigateNext(); });
+if (vidEndcardReplay) vidEndcardReplay.addEventListener('click', (e) => { e.stopPropagation(); replayClip(); });
+
+// Spacebar toggles play/pause (unless typing in a field or a control is focused).
+document.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' && e.key !== ' ') return;
+  const el = document.activeElement;
+  const tag = el ? el.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || (el && el.isContentEditable)) return;
+  if (video.style.display === 'none') return; // nothing playing yet
+  e.preventDefault();
+  togglePlay();
 });
 
 // NEW: Draggable scrubber implementation
@@ -461,6 +596,8 @@ function seekToPosition(clientX) {
   // Hide any active transition
   sectionTransition.classList.remove('show');
   restoreBulletsAndListsAfterTitleCard();
+  hideEndcard();
+  clearHighlights();
   
   // Reset lastShownSectionIdx if seeking backward
   // This allows transitions to replay when rewatching sections
@@ -605,6 +742,7 @@ function onT(t){
   updateSubtitles(t);
   updateVideoCallouts(t);
   updateDisplay(t);
+  applyEndFade(t);
 }
 
 function updateDisplay(t){

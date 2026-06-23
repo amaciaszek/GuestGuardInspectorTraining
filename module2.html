@@ -45,6 +45,7 @@ body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
 
 <header class="hdr">
   <img id="logoImg" src="https://guestguard-platform.vercel.app/_next/image?url=%2Fgg_logo_small.png&w=640&q=75&dpl=dpl_DveWjYKd9Bi3M3CYp1G8uPrAWQZY" alt="GuestGuard Logo" class="hdr-logo">
+  <a class="hdr-back" href="index.html"><span class="hdr-back-arrow">←</span> Modules</a>
   <div class="hdr-sep"></div>
   <div class="hdr-title" id="vbTitle">GuestGuard Inspector Training — Module 2</div>
   <div class="hdr-tag">MODULE 2</div>
@@ -111,6 +112,22 @@ body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
       <div class="vid-hover-overlay" id="hoverOverlay">
         <div class="vid-hover-icon" id="hoverIcon">▶</div>
       </div>
+      <!-- ADDED: fade-to-black at clip end (hides the held final frame) -->
+      <div class="vid-fade-black" id="vidFadeBlack"></div>
+      <!-- ADDED: loading spinner for slow connections -->
+      <div class="vid-loading" id="vidLoading">
+        <div class="vid-loading-spinner"></div>
+        <div class="vid-loading-text">Loading video…</div>
+      </div>
+      <!-- ADDED: end-of-clip "Up Next" overlay -->
+      <div class="vid-endcard" id="vidEndcard">
+        <div class="vid-endcard-label" id="vidEndcardLabel">Up Next</div>
+        <div class="vid-endcard-title" id="vidEndcardTitle"></div>
+        <div class="vid-endcard-actions">
+          <button class="vid-endcard-btn secondary" id="vidEndcardReplay"><span class="vid-endcard-replay-icon">↺</span> Replay</button>
+          <button class="vid-endcard-btn" id="vidEndcardNext">Continue →</button>
+        </div>
+      </div>
     </div>
     <div class="vid-subs">
       <div class="vid-subs-stack" id="subsStack">
@@ -171,6 +188,13 @@ body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
 
   document.getElementById('vbData').textContent = JSON.stringify(ch.vbData);
   window.GG_PLAYER = ch.player;
+
+  // Where the end-of-clip "Up Next" button should send the viewer.
+  if (n < ALL.length) {
+    window.GG_NEXT = { kind: 'part', title: 'Part ' + (n + 1) + ' — ' + ALL[n].label, hash: 'ch=' + (n + 1) };
+  } else {
+    window.GG_NEXT = { kind: 'module', title: 'Module 3 — Platform Walkthrough', href: 'module3.html' };
+  }
 
   var vid = document.getElementById('trainingVideo');
   var src = vid.querySelector('source');
