@@ -303,45 +303,6 @@ function togglePlay() {
 // Timed overlays for narration moments where the script lists numbered items.
 // These are intentionally short and left-weighted so they support the narration without covering the room view.
 const CALLOUTS = GG_PLAYER.callouts;
-
-// Optional editorial cuts. The source MP4 remains unchanged, but playback and seeking
-// jump over these ranges so removed guidance is never shown or heard in the module.
-const SKIP_RANGES = Array.isArray(GG_PLAYER.skipRanges)
-  ? GG_PLAYER.skipRanges
-      .filter(r => Number.isFinite(r.start) && Number.isFinite(r.end) && r.end > r.start)
-      .slice()
-      .sort((a, b) => a.start - b.start)
-  : [];
-let skipInProgress = false;
-
-function skipRangeAt(t) {
-  for (let i = 0; i < SKIP_RANGES.length; i++) {
-    const r = SKIP_RANGES[i];
-    if (t >= r.start && t < r.end) return r;
-  }
-  return null;
-}
-
-function normalizeSeekTarget(t, direction) {
-  const r = skipRangeAt(t);
-  if (!r) return t;
-  return direction === 'backward' ? Math.max(0, r.start - 0.02) : r.end;
-}
-
-function applyEditorialSkip(t) {
-  if (skipInProgress) return false;
-  const r = skipRangeAt(t);
-  if (!r) return false;
-  skipInProgress = true;
-  currentCalloutIdx = -1;
-  videoCallout.classList.remove('show');
-  videoCallout.setAttribute('aria-hidden', 'true');
-  video.currentTime = r.end;
-  return true;
-}
-
-video.addEventListener('seeked', () => { skipInProgress = false; });
-
 let currentCalloutIdx = -1;
 // Small sync nudge: positive values make subtitles and callouts appear a little later.
 // Set SHOW_SYNC_TOOLS to true to bring the testing controls back.
@@ -666,7 +627,7 @@ const rewindBtn = document.getElementById('rewindBtn');
 function rewind10() {
   // Only meaningful once playback has started.
   if (video.style.display === 'none') return;
-  const target = normalizeSeekTarget(Math.max(0, video.currentTime - 10), 'backward');
+  const target = Math.max(0, video.currentTime - 10);
 
   isSeeking = true;
   video.currentTime = target;
@@ -708,9 +669,7 @@ vidBox.addEventListener('click', (e) => {
 });
 
 video.addEventListener('timeupdate', () => {
-  const now = video.currentTime;
-  if (applyEditorialSkip(now)) return;
-  fakeT = now;
+  fakeT = video.currentTime;
   if(fakeT > maxWatched) maxWatched = fakeT;
   onT(fakeT);
 });
@@ -811,8 +770,7 @@ function seekToPosition(clientX) {
   const clickX = clientX - scrubberRect.left;
   const clickPct = Math.max(0, Math.min(1, clickX / scrubberRect.width));
   const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
-  let targetT = clickPct * safeDuration;
-  targetT = normalizeSeekTarget(targetT, targetT < video.currentTime ? 'backward' : 'forward');
+  const targetT = clickPct * safeDuration;
   
   // TESTING MODE: Allow seeking anywhere in the video
   isSeeking = true;
