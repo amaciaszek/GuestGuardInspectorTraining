@@ -265,6 +265,13 @@ function hideEndcard() {
   if (vidEndcard) vidEndcard.classList.remove('show');
 }
 function navigateNext() {
+  // Knowledge-check gate: if the page defines window.GG_QUIZ_GATE and it returns
+  // false, a between-chapter quiz still needs to be passed. The quiz layer shows
+  // itself and, once the learner passes, calls window.GG_navigateNext() again —
+  // at which point the gate returns true and we fall through to the navigation
+  // below. If no gate is defined, this is a no-op and behaviour is unchanged.
+  if (typeof window.GG_QUIZ_GATE === 'function' && !window.GG_QUIZ_GATE()) return;
+
   if (NEXT_TARGET && NEXT_TARGET.hash) {
     location.hash = NEXT_TARGET.hash;
     location.reload();
@@ -274,6 +281,8 @@ function navigateNext() {
     location.href = 'index.html';
   }
 }
+// Exposed so the quiz layer can resume navigation after a passing score.
+window.GG_navigateNext = navigateNext;
 function replayClip() {
   hideEndcard();
   clearHighlights();
