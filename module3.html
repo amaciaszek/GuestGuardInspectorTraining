@@ -218,6 +218,15 @@ body.light-mode .role-option input:checked + span { border-color: var(--teal); b
 body.light-mode .role-apply { border-color: var(--teal); background: var(--teal); color: #fff; }
 .role-summary { color: var(--ink-mid); line-height: 1.45; }
 .role-summary strong { color: var(--ink); }
+/* Collapsed (already-answered) state: slim summary bar with a Change button */
+.role-gate.is-collapsed { padding: 14px 20px; }
+.role-compact { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.role-compact-text { color: var(--ink-mid); line-height: 1.45; font-size: .9rem; }
+.role-compact-text strong { color: var(--ink); }
+.role-change-btn { flex-shrink: 0; border: 1px solid var(--border); background: var(--s3); color: var(--ink); padding: 9px 16px; font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: all .2s; }
+.role-change-btn:hover { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+body.light-mode .role-change-btn:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
+@media (max-width: 560px) { .role-compact { flex-direction: column; align-items: stretch; } .role-change-btn { width: 100%; } }
 .category-container.library-pending .category { opacity: .35; filter: grayscale(.75); pointer-events: none; user-select: none; }
 .card.role-restricted { opacity: .42; filter: grayscale(1); cursor: not-allowed !important; transform: none !important; box-shadow: none !important; border-color: var(--border) !important; }
 .card.role-restricted::after { content: ''; position: absolute; inset: 0; background: rgba(10,12,18,.16); pointer-events: none; }
@@ -278,35 +287,43 @@ body.light-mode .video-notice strong { color: var(--teal); }
     </section>
 
     <section class="role-gate" id="roleGate" aria-labelledby="roleGateTitle">
-      <div class="role-gate-head">
-        <div>
-          <div class="role-gate-kicker">Personalize Your Training</div>
-          <h2 id="roleGateTitle">Which sections apply to your role?</h2>
-          <p class="role-gate-intro">Answer these two questions to dim sections that are not required for your role. You can change your answers at any time.</p>
-        </div>
+      <!-- Compact view: shown once a role has been chosen -->
+      <div class="role-compact" id="roleCompact" style="display:none;">
+        <div class="role-compact-text" id="roleCompactText"></div>
+        <button type="button" class="role-change-btn" id="changeRoleBtn">Change</button>
       </div>
-      <form id="roleForm">
-        <div class="role-questions">
-          <fieldset class="role-question">
-            <legend>1. Are you a Company Admin?</legend>
-            <div class="role-options">
-              <label class="role-option"><input type="radio" name="isAdmin" value="yes"><span>Yes</span></label>
-              <label class="role-option"><input type="radio" name="isAdmin" value="no"><span>No</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="role-question">
-            <legend>2. Are you a Manager or Lead Inspector?</legend>
-            <div class="role-options">
-              <label class="role-option"><input type="radio" name="isLeader" value="yes"><span>Yes</span></label>
-              <label class="role-option"><input type="radio" name="isLeader" value="no"><span>No</span></label>
-            </div>
-          </fieldset>
+      <!-- Full view: the one-time questions -->
+      <div class="role-gate-full" id="roleGateFull">
+        <div class="role-gate-head">
+          <div>
+            <div class="role-gate-kicker">Personalize Your Training</div>
+            <h2 id="roleGateTitle">Which sections apply to your role?</h2>
+            <p class="role-gate-intro">Answer these two questions to dim sections that are not required for your role. You can change your answers at any time.</p>
+          </div>
         </div>
-        <div class="role-actions">
-          <button type="submit" class="role-apply" id="applyRoleBtn" disabled>Apply Role Settings</button>
-          <div class="role-summary" id="roleSummary">Choose one answer for each question to unlock the video library.</div>
-        </div>
-      </form>
+        <form id="roleForm">
+          <div class="role-questions">
+            <fieldset class="role-question">
+              <legend>1. Are you a Company Admin?</legend>
+              <div class="role-options">
+                <label class="role-option"><input type="radio" name="isAdmin" value="yes"><span>Yes</span></label>
+                <label class="role-option"><input type="radio" name="isAdmin" value="no"><span>No</span></label>
+              </div>
+            </fieldset>
+            <fieldset class="role-question">
+              <legend>2. Are you a Manager or Lead Inspector?</legend>
+              <div class="role-options">
+                <label class="role-option"><input type="radio" name="isLeader" value="yes"><span>Yes</span></label>
+                <label class="role-option"><input type="radio" name="isLeader" value="no"><span>No</span></label>
+              </div>
+            </fieldset>
+          </div>
+          <div class="role-actions">
+            <button type="submit" class="role-apply" id="applyRoleBtn" disabled>Apply Role Settings</button>
+            <div class="role-summary" id="roleSummary">Choose one answer for each question to unlock the video library.</div>
+          </div>
+        </form>
+      </div>
     </section>
 
     <div id="categoryContainer" class="category-container library-pending"></div>
@@ -318,7 +335,7 @@ body.light-mode .video-notice strong { color: var(--teal); }
     <div class="player-bar">
       <button class="back-btn" id="backBtn">← Library</button>
       <div class="player-title" id="playerTitle">Video Title</div>
-      <div class="player-subtitle" id="playerSubtitle">B1</div>
+      <div class="player-subtitle" id="playerSubtitle"></div>
     </div>
     <div class="content-wrapper">
       <div class="vid-container">
@@ -412,11 +429,22 @@ const categoryInfo = {
 };
 
 const categoryContainer = document.getElementById('categoryContainer');
+const roleGate = document.getElementById('roleGate');
+const roleGateFull = document.getElementById('roleGateFull');
+const roleCompact = document.getElementById('roleCompact');
+const roleCompactText = document.getElementById('roleCompactText');
+const changeRoleBtn = document.getElementById('changeRoleBtn');
 const roleForm = document.getElementById('roleForm');
 const applyRoleBtn = document.getElementById('applyRoleBtn');
 const roleSummary = document.getElementById('roleSummary');
 const ROLE_STORAGE_KEY = 'guestguard-module3-role';
 let currentRoleProfile = null;
+
+function setRoleCollapsed(collapsed) {
+  roleGate.classList.toggle('is-collapsed', collapsed);
+  roleGateFull.style.display = collapsed ? 'none' : 'block';
+  roleCompact.style.display = collapsed ? 'flex' : 'none';
+}
 
 function getRestrictedIds(profile) {
   if (!profile) return [];
@@ -426,9 +454,9 @@ function getRestrictedIds(profile) {
 }
 
 function describeRole(profile) {
-  if (profile.isAdmin) return '<strong>Company Admin:</strong> all 15 sections are available.';
-  if (profile.isLeader) return '<strong>Manager / Lead Inspector:</strong> B12 and B13 are dimmed because they require Company Admin access.';
-  return '<strong>Inspector:</strong> B12, B13, and B14 are dimmed because they are intended for elevated company roles.';
+  if (profile.isAdmin) return '<strong>Company Admin:</strong> all sections are available.';
+  if (profile.isLeader) return '<strong>Manager / Lead Inspector:</strong> the “Adding Your Own Company” and “Accessing Stripe Payment Portal” sections are dimmed because they require Company Admin access.';
+  return '<strong>Inspector:</strong> the “Adding Your Own Company,” “Accessing Stripe Payment Portal,” and “Management Portal” sections are dimmed because they are intended for elevated company roles.';
 }
 
 function readRoleForm() {
@@ -446,9 +474,13 @@ function applyRoleProfile(profile, persist = true) {
   currentRoleProfile = profile;
   categoryContainer.classList.remove('library-pending');
   roleSummary.innerHTML = describeRole(profile);
+  roleCompactText.innerHTML = describeRole(profile);
   if (persist) localStorage.setItem(ROLE_STORAGE_KEY, JSON.stringify(profile));
+  setRoleCollapsed(true);
   renderLibrary();
 }
+
+changeRoleBtn.addEventListener('click', () => setRoleCollapsed(false));
 
 roleForm.addEventListener('change', updateRoleFormState);
 roleForm.addEventListener('submit', e => {
@@ -467,6 +499,8 @@ roleForm.addEventListener('submit', e => {
     currentRoleProfile = saved;
     categoryContainer.classList.remove('library-pending');
     roleSummary.innerHTML = describeRole(saved);
+    roleCompactText.innerHTML = describeRole(saved);
+    setRoleCollapsed(true);
   } catch (e) {
     localStorage.removeItem(ROLE_STORAGE_KEY);
   }
@@ -500,10 +534,7 @@ function renderLibrary() {
       if (!isRestricted) card.setAttribute('data-watch', v.id);
       card.style.cursor = isRestricted ? 'not-allowed' : 'pointer';
       card.innerHTML = `
-        <div class="card-top">
-          <div class="card-id">${v.id}</div>
-          ${isRestricted ? '<div class="card-lock">Not required for your role</div>' : ''}
-        </div>
+        ${isRestricted ? '<div class="card-top"><div class="card-lock">Not required for your role</div></div>' : ''}
         <h3>${v.title}</h3>
         <p>${v.desc}</p>
         <div class="card-duration">${isRestricted ? 'Role-restricted section' : `▶ ${v.duration}`}</div>
@@ -660,11 +691,23 @@ function showTitleCard(title) {
   }, 3500);
 }
 
+// Flatten videos into the exact order they appear on the page:
+// grouped by category (in categoryInfo order), then in their listed order
+// within each category — the same order renderLibrary() uses.
+function getDisplayOrderedVideos() {
+  const order = [];
+  Object.keys(categoryInfo).forEach(category => {
+    videos.filter(v => v.category === category).forEach(v => order.push(v));
+  });
+  return order;
+}
+
 function getNextAvailableVideo(currentId) {
-  const currentIdx = videos.findIndex(v => v.id === currentId);
+  const ordered = getDisplayOrderedVideos();
+  const currentIdx = ordered.findIndex(v => v.id === currentId);
   if (currentIdx < 0) return null;
   const restrictedIds = new Set(getRestrictedIds(currentRoleProfile));
-  return videos.slice(currentIdx + 1).find(v => !restrictedIds.has(v.id)) || null;
+  return ordered.slice(currentIdx + 1).find(v => !restrictedIds.has(v.id)) || null;
 }
 
 function openFollowWindow(url) {
