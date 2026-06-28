@@ -102,6 +102,19 @@
       var ans = new Array(questions.length).fill(null);
       var submitted = false;
 
+      // Randomize the display order of each question's options on every build,
+      // so a Retake re-shuffles (the correct answer moves between A/B/C/D).
+      // Button IDs stay keyed to the ORIGINAL option index, so grading is
+      // unaffected; only the on-screen position and letter change.
+      var order = questions.map(function (q) {
+        var idx = q.options.map(function (_, i) { return i; });
+        for (var i = idx.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+        }
+        return idx;
+      });
+
       // Reset panels
       $('ggqRes').classList.remove('show');
       $('ggqResTop').classList.remove('pass', 'fail');
@@ -125,10 +138,10 @@
             '<span class="ggq-card-q">' + escapeHtml(q.text) + '</span>' +
           '</div>' +
           '<div class="ggq-opts">' +
-            q.options.map(function (o, oi) {
+            order[qi].map(function (oi, d) {
               return '<button type="button" class="ggq-opt" id="ggq-o-' + qi + '-' + oi + '" data-q="' + qi + '" data-o="' + oi + '">' +
-                       '<span class="ggq-opt-l">' + LETTERS[oi] + '</span>' +
-                       '<span class="ggq-opt-t">' + escapeHtml(o) + '</span>' +
+                       '<span class="ggq-opt-l">' + LETTERS[d] + '</span>' +
+                       '<span class="ggq-opt-t">' + escapeHtml(q.options[oi]) + '</span>' +
                      '</button>';
             }).join('') +
           '</div>' +

@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GuestGuard Inspector Training — Module 4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=Inconsolata:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:     #161A24;
+  --s1:     #1C2130;
+  --s2:     #222838;
+  --s3:     #2A3042;
+  --border: #2E3648;
+  --b2:     #3A4460;
+  --gold:   #C9A84C;
+  --gold-hi:#E5C068;
+  --gold-lo: rgba(201,168,76,.18);
+  --gold-dim:rgba(201,168,76,.08);
+  --teal:   #4AAFB8;
+  --teal-hi:#5FC0C8;
+  --teal-dim:rgba(74,175,184,.1);
+  --red:    #D44A4A;
+  --red-dim: rgba(212,74,74,.1);
+  --ink:    #EEE8DA;
+  --ink-mid:#8A94A8;
+  --ink-dim:#444E68;
+  --display: 'Cormorant Garamond', serif;
+  --sans: 'Outfit', sans-serif;
+  --mono: 'Inconsolata', monospace;
+  --noise-opacity: 0.025;
+
+  /* iPad bezel — dark mode (space gray) */
+  --ipad-bezel: linear-gradient(145deg, #3a3f4a 0%, #2a2e37 45%, #1f232b 100%);
+  --ipad-edge:  rgba(255,255,255,.07);
+}
+body.light-mode {
+  --bg:     #F7F3EC;
+  --s1:     #F0EBE2;
+  --s2:     #E8E1D6;
+  --s3:     #DDD5C8;
+  --border: #D0C8BB;
+  --b2:     #C0B8AB;
+  --gold:   #8B6914;
+  --gold-hi:#A38320;
+  --gold-lo: rgba(139,105,20,.18);
+  --gold-dim:rgba(139,105,20,.1);
+  --teal:   #1A4A2E;
+  --teal-hi:#2E7A4E;
+  --teal-dim:rgba(26,74,46,.1);
+  --red:    #8B2A1A;
+  --red-dim: rgba(139,42,26,.1);
+  --ink:    #1E1A14;
+  --ink-mid:#5A4E3C;
+  --ink-dim:#9A8E7C;
+  --noise-opacity: 0;
+
+  /* iPad bezel — light mode (silver) */
+  --ipad-bezel: linear-gradient(145deg, #ECECEE 0%, #D5D8DE 50%, #BFC3CB 100%);
+  --ipad-edge:  rgba(255,255,255,.55);
+}
+html {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: clamp(14px, 0.9vw, 18px);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+body { min-height: 100vh; background: var(--bg); overflow: hidden; }
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  background-size: 200px 200px; opacity: var(--noise-opacity); transition: opacity .3s ease;
+}
+* { position: relative; }
+
+/* ─────────────── HEADER (shared) ─────────────── */
+.hdr {
+  position: sticky; top: 0; z-index: 50;
+  height: 64px; display: flex; align-items: center; gap: 20px; padding: 0 2rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 0 rgba(201,168,76,.15);
+  transition: background-color .3s ease, border-color .3s ease;
+}
+body.light-mode .hdr { border-bottom: 2px solid var(--ink); box-shadow: none; }
+.hdr-logo { height: 56px; display: block; transition: filter .3s ease; }
+.hdr-sep { width: 1px; height: 40px; background: var(--border); }
+.hdr-title { font-family: var(--display); font-size: 1.3rem; font-weight: 500; color: var(--ink); letter-spacing: .01em; flex: 1; }
+.hdr-tag {
+  padding: 6px 14px; background: var(--gold-dim); color: var(--gold);
+  font-size: 0.75rem; font-weight: 600; letter-spacing: .1em; border-radius: 4px;
+  border: 1px solid var(--gold-lo); font-family: var(--mono);
+}
+body.light-mode .hdr-tag { background: var(--teal-dim); color: var(--teal); border-color: var(--teal-dim); }
+
+.hdr-back {
+  display: inline-flex; align-items: center; gap: 7px; text-decoration: none;
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-mid); background: var(--s2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 12px;
+  transition: color .2s, border-color .2s, background-color .2s, transform .08s; flex-shrink: 0;
+}
+.hdr-back:hover { color: var(--gold); border-color: var(--gold); }
+body.light-mode .hdr-back:hover { color: var(--teal); border-color: var(--teal); }
+.hdr-back:active { transform: translateY(1px); }
+.hdr-back-arrow { font-size: .95rem; line-height: 1; }
+
+/* Theme toggle */
+.theme-toggle { display: flex; align-items: center; gap: 12px; }
+.toggle-icon { stroke: var(--ink-mid); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke .3s ease; width: 24px; height: 24px; }
+.toggle-switch { position: relative; width: 48px; height: 26px; background: var(--s3); border-radius: 13px; cursor: pointer; border: 1px solid var(--border); transition: background-color .3s ease; }
+.toggle-slider { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: var(--gold); border-radius: 50%; transform: translateX(22px); transition: transform .3s ease, background-color .3s ease; }
+body.light-mode .toggle-slider { transform: translateX(0); background: var(--teal); }
+
+/* ─────────────── PLAYER SHELL ─────────────── */
+.player-shell {
+  height: calc(100vh - 64px);
+  display: flex; flex-direction: column;
+  min-height: 0; overflow: hidden;
+  background: var(--bg);
+}
+
+/* The two-video stage */
+.stage {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(16px, 3vw, 56px);
+  padding: clamp(14px, 2.4vh, 30px) clamp(16px, 2.6vw, 48px);
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  transition: background-color .3s ease, border-color .3s ease;
+}
+body.light-mode .stage { background: var(--s2); }
+.stage::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.28) 100%);
+}
+body.light-mode .stage::after { background: radial-gradient(ellipse at center, transparent 60%, rgba(30,26,20,.06) 100%); }
+
+.frame {
+  height: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  gap: clamp(8px, 1vh, 14px);
+  min-width: 0; min-height: 0;
+  z-index: 2;
+}
+
+.frame-tag {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink-mid);
+  padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--s2); white-space: nowrap;
+}
+body.light-mode .frame-tag { background: var(--bg); }
+.frame-tag b { color: var(--gold); font-weight: 600; letter-spacing: .14em; }
+body.light-mode .frame-tag b { color: var(--teal); }
+.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 8px var(--red); animation: recPulse 1.6s ease-in-out infinite; }
+@keyframes recPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.78); } }
+
+.frame-media {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Left — bodycam (raw vertical video, lightly framed) */
+.bodycam-video {
+  height: 100%; width: auto; max-width: 100%;
+  display: block; object-fit: contain;
+  background: #000;
+  border-radius: clamp(8px, 1vw, 16px);
+  box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px var(--border);
+  cursor: pointer;
+}
+body.light-mode .bodycam-video { box-shadow: 0 12px 34px rgba(30,26,20,.22), 0 0 0 1px var(--border); }
+
+/* Right — iPad recording inside a fake bezel */
+.ipad-frame {
+  height: 100%;
+  padding: clamp(11px, 1.5vw, 22px);
+  border-radius: clamp(22px, 2.6vw, 40px);
+  background: var(--ipad-bezel);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow:
+    0 24px 60px rgba(0,0,0,.5),
+    inset 0 0 0 1px var(--ipad-edge),
+    inset 0 2px 3px rgba(255,255,255,.14),
+    inset 0 -3px 5px rgba(0,0,0,.45);
+}
+body.light-mode .ipad-frame {
+  box-shadow:
+    0 16px 40px rgba(30,26,20,.28),
+    inset 0 0 0 1px rgba(255,255,255,.7),
+    inset 0 2px 3px rgba(255,255,255,.9),
+    inset 0 -3px 6px rgba(0,0,0,.18);
+}
+/* Front-facing camera dot on the top bezel */
+.ipad-frame::before {
+  content: ''; position: absolute; z-index: 4;
+  top: clamp(5px, 0.62vw, 10px); left: 50%; transform: translateX(-50%);
+  width: clamp(5px, 0.55vw, 8px); height: clamp(5px, 0.55vw, 8px); border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #586272 0%, #11141a 70%);
+  box-shadow: inset 0 0 1px rgba(255,255,255,.4), 0 0 2px rgba(0,0,0,.6);
+}
+.ipad-screen {
+  height: 100%;
+  border-radius: clamp(6px, 0.9vw, 14px);
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.85), inset 0 0 16px rgba(0,0,0,.6);
+}
+.ipad-screen video {
+  height: 100%; width: auto; max-width: 100%;
+  display: block; object-fit: contain; background: #000;
+  cursor: pointer;
+}
+
+/* ─────────────── SUBTITLES (shared style) ─────────────── */
+.vid-subs {
+  flex: 0 0 76px; height: 76px;
+  padding: 10px 28px;
+  background: var(--s2); border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color .3s ease, border-color .3s ease;
+}
+.vid-subs-stack { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.vid-subs-text { font-size: 1.16rem; color: var(--ink); line-height: 1.35; text-align: center; font-weight: 500; max-width: 98%; white-space: pre-line; }
+
+/* ─────────────── SCRUB BAR (shared style) ─────────────── */
+.scrub {
+  height: 14px; flex: 0 0 14px;
+  background: var(--s3); cursor: pointer;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.4);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  user-select: none; overflow: visible; z-index: 20;
+  transition: background-color .3s ease, border-color .3s ease;
+}
+body.light-mode .scrub { box-shadow: inset 0 2px 4px rgba(0,0,0,.12); }
+.scrub.dragging { cursor: grabbing; }
+.scrub-max { position: absolute; top: 0; left: 0; height: 100%; background: var(--s3); opacity: .6; pointer-events: none; }
+.scrub-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-hi)); width: 0%; transition: width .1s linear; box-shadow: 0 0 12px rgba(201,168,76,.6); pointer-events: none; }
+body.light-mode .scrub-fill { background: var(--teal); box-shadow: none; }
+.scrub-fill::after { content: ''; position: absolute; right: 0; top: 0; width: 6px; height: 100%; background: var(--gold-hi); box-shadow: 0 0 16px rgba(201,168,76,.8); }
+body.light-mode .scrub-fill::after { width: 4px; background: var(--teal-hi); box-shadow: none; }
+.scrub-dot { position: absolute; top: -5px; width: 22px; height: 22px; background: var(--gold); border: 3px solid var(--bg); border-radius: 50%; transform: translateX(-50%); cursor: grab; box-shadow: 0 2px 8px rgba(0,0,0,.3); pointer-events: none; transition: transform .1s ease, box-shadow .1s ease; z-index: 20; }
+body.light-mode .scrub-dot { background: var(--teal); box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+.scrub.dragging .scrub-dot { transform: translateX(-50%) scale(1.2); box-shadow: 0 4px 16px rgba(201,168,76,.6); cursor: grabbing; }
+
+/* ─────────────── CONTROLS (shared style) ─────────────── */
+.vid-controls { height: 48px; flex: 0 0 48px; background: var(--s2); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 16px; padding: 0 24px; transition: background-color .3s ease, border-color .3s ease; }
+.vid-play-btn { width: 40px; height: 40px; background: var(--gold); border: none; border-radius: 50%; color: var(--bg); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; flex-shrink: 0; }
+body.light-mode .vid-play-btn { background: var(--teal); }
+.vid-play-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(201,168,76,.4); }
+body.light-mode .vid-play-btn:hover { box-shadow: 0 4px 12px rgba(26,74,46,.3); }
+.vid-rewind-btn { width: 40px; height: 40px; background: transparent; border: 1px solid var(--border); border-radius: 50%; color: var(--ink-mid); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; flex-shrink: 0; }
+.vid-rewind-btn:hover { color: var(--gold); border-color: var(--gold); transform: scale(1.05); }
+body.light-mode .vid-rewind-btn:hover { color: var(--teal); border-color: var(--teal); }
+.vid-rewind-num { position: absolute; font-family: var(--mono); font-size: 8px; font-weight: 700; line-height: 1; top: 53%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.vid-time { font-family: var(--mono); font-size: 0.95rem; color: var(--ink-mid); min-width: 84px; }
+.vid-sep { width: 1px; height: 24px; background: var(--border); }
+.vid-segment { flex: 1; font-size: 0.9rem; color: var(--ink); font-weight: 500; }
+.vid-synced { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-mid); }
+.vid-synced .link-ico { width: 13px; height: 13px; stroke: var(--gold); fill: none; stroke-width: 2; }
+body.light-mode .vid-synced .link-ico { stroke: var(--teal); }
+
+/* ─────────────── START OVERLAY ─────────────── */
+.start-overlay {
+  position: absolute; inset: 0; z-index: 30;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  padding: 40px;
+  background: linear-gradient(135deg, rgba(22,26,36,.92), rgba(28,33,48,.86));
+  backdrop-filter: blur(6px); cursor: pointer;
+  transition: opacity .4s ease, visibility .4s ease;
+}
+body.light-mode .start-overlay { background: linear-gradient(135deg, rgba(247,243,236,.93), rgba(240,235,226,.88)); }
+.start-overlay.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+.start-ring-wrap { position: relative; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; }
+.start-ring { position: absolute; inset: 0; border: 1px solid var(--gold-lo); border-radius: 50%; }
+body.light-mode .start-ring { border-color: var(--teal-dim); }
+.start-ring:nth-child(1) { animation: pulse 2s ease-in-out infinite; }
+.start-ring:nth-child(2) { animation: pulse 2s ease-in-out infinite .5s; opacity: .6; }
+.start-ring:nth-child(3) { animation: pulse 2s ease-in-out infinite 1s; opacity: .3; }
+@keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: .3; } }
+.start-icon { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--gold), var(--gold-hi)); border-radius: 50%; font-size: 22px; color: var(--bg); box-shadow: 0 8px 32px rgba(201,168,76,.3); }
+body.light-mode .start-icon { background: var(--ink); color: var(--bg); box-shadow: 0 4px 16px rgba(30,26,20,.15); }
+.start-title { font-family: var(--display); font-size: clamp(1.5rem, 2.6vw, 2.3rem); font-weight: 600; color: var(--ink); text-align: center; letter-spacing: .01em; }
+.start-desc { font-size: 0.95rem; color: var(--ink-mid); line-height: 1.6; max-width: 540px; text-align: center; }
+.start-eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+body.light-mode .start-eyebrow { color: var(--teal); }
+
+/* ─────────────── END CARD ─────────────── */
+.endcard {
+  position: absolute; inset: 0; z-index: 32;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 40px;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(5px);
+  opacity: 0; visibility: hidden; transition: opacity .4s ease, visibility .4s ease;
+}
+.endcard.show { opacity: 1; visibility: visible; }
+.endcard-label { font-family: var(--mono); font-size: .8rem; letter-spacing: .22em; text-transform: uppercase; color: var(--gold); }
+.endcard-title { font-family: var(--display); font-size: clamp(1.6rem, 2.6vw, 2.6rem); font-weight: 600; color: #EEE8DA; text-align: center; line-height: 1.15; max-width: 640px; }
+.endcard-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.endcard-btn { display: inline-flex; align-items: center; gap: 10px; font-family: var(--sans); font-size: .9rem; font-weight: 600; letter-spacing: .04em; cursor: pointer; border-radius: 8px; padding: 13px 22px; border: 1px solid var(--gold); background: linear-gradient(135deg, var(--gold), var(--gold-hi)); color: #161A24; transition: transform .12s ease, box-shadow .2s ease; }
+.endcard-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(201,168,76,.4); }
+body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal); color: #fff; }
+.endcard-btn.secondary { background: transparent; color: #EEE8DA; border-color: rgba(238,232,218,.4); }
+.endcard-btn.secondary:hover { border-color: #EEE8DA; box-shadow: none; }
+
+/* ─────────────── LOADING SPINNER ─────────────── */
+.vid-loading { position: absolute; inset: 0; z-index: 28; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: rgba(0,0,0,.45); opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility .25s ease; pointer-events: none; }
+.vid-loading.show { opacity: 1; visibility: visible; }
+.vid-loading-spinner { width: 54px; height: 54px; border-radius: 50%; border: 3px solid rgba(201,168,76,.25); border-top-color: var(--gold); animation: ggSpin .9s linear infinite; }
+.vid-loading-text { font-family: var(--mono); font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; color: #EEE8DA; }
+@keyframes ggSpin { to { transform: rotate(360deg); } }
+
+/* ─────────────── RESPONSIVE ─────────────── */
+@media (max-width: 960px) {
+  body { overflow: auto; }
+  .player-shell { height: auto; overflow: visible; }
+  .stage { flex-direction: column; gap: 26px; padding: 26px 18px; }
+  .frame { height: auto; width: 100%; max-width: 460px; }
+  .frame-media { flex: 0 0 auto; width: 100%; }
+  .bodycam-video { height: auto; width: 100%; }
+  .ipad-frame { height: auto; width: 100%; }
+  .ipad-screen { height: auto; width: 100%; }
+  .ipad-screen video { height: auto; width: 100%; }
+  .vid-subs { position: sticky; bottom: 96px; }
+}
+@media (max-width: 768px) {
+  html { font-size: 15px; }
+  .hdr { height: auto; padding: 14px 1rem; flex-wrap: wrap; gap: 12px; }
+  .hdr-title { font-size: 1.05rem; }
+  .vid-controls { padding: 0 14px; gap: 12px; }
+  .vid-synced { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <img id="logoImg" src="https://guestguard-platform.vercel.app/_next/image?url=%2Fgg_logo_small.png&w=640&q=75&dpl=dpl_DveWjYKd9Bi3M3CYp1G8uPrAWQZY" alt="GuestGuard Logo" class="hdr-logo">
+  <a class="hdr-back" href="index.html"><span class="hdr-back-arrow">←</span> Modules</a>
+  <div class="hdr-sep"></div>
+  <div class="hdr-title">GuestGuard Inspector Training — Module 4</div>
+  <div class="hdr-tag">MODULE 4</div>
+  <div class="theme-toggle" aria-label="Toggle light and dark mode">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="toggle-icon sun"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+    <div class="toggle-switch" id="themeToggle"><div class="toggle-slider"></div></div>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="toggle-icon moon"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path></svg>
+  </div>
+</header>
+
+<div class="player-shell">
+
+  <div class="stage" id="stage">
+
+    <!-- LEFT: bodycam walkthrough (vertical, has audio + captions) -->
+    <div class="frame bodycam">
+      <div class="frame-tag"><span class="rec-dot"></span> <b>Bodycam</b> · Inspector POV</div>
+      <div class="frame-media">
+        <video id="bodycamVideo" playsinline preload="auto"
+               disablePictureInPicture disableRemotePlayback
+               controlsList="nodownload noplaybackrate nopictureinpicture noremoteplayback"
+               class="bodycam-video">
+          <source src="https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/IMG_8643.MOV">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+
+    <!-- RIGHT: iPad screen recording (vertical, silent) inside a fake bezel -->
+    <div class="frame ipad">
+      <div class="frame-tag"><b>Tablet</b> · Live Form Entry</div>
+      <div class="frame-media">
+        <div class="ipad-frame">
+          <div class="ipad-screen">
+            <video id="ipadVideo" playsinline muted preload="auto"
+                   disablePictureInPicture disableRemotePlayback
+                   controlsList="nodownload noplaybackrate nopictureinpicture noremoteplayback">
+              <source src="https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/RecordIt-1781822440.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Start overlay -->
+    <div class="start-overlay" id="startOverlay">
+      <div class="start-eyebrow">Module 4 · Room-by-Room Walkthrough</div>
+      <div class="start-ring-wrap">
+        <div class="start-ring"></div>
+        <div class="start-ring"></div>
+        <div class="start-ring"></div>
+        <div class="start-icon">▶</div>
+      </div>
+      <div class="start-title">Live Inspection Walkthrough</div>
+      <div class="start-desc">Watch the inspector's bodycam on the left and the tablet form being filled out in real time on the right. The two videos play in sync. Click anywhere to begin.</div>
+    </div>
+
+    <!-- Loading spinner -->
+    <div class="vid-loading" id="vidLoading">
+      <div class="vid-loading-spinner"></div>
+      <div class="vid-loading-text">Loading…</div>
+    </div>
+
+    <!-- End card -->
+    <div class="endcard" id="endcard">
+      <div class="endcard-label">Walkthrough Complete</div>
+      <div class="endcard-title">You've finished the live inspection walkthrough.</div>
+      <div class="endcard-actions">
+        <button class="endcard-btn secondary" id="replayBtn">↺ Replay</button>
+        <a class="endcard-btn" href="index.html">Back to Modules →</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Shared subtitle strip (bodycam captions) -->
+  <div class="vid-subs">
+    <div class="vid-subs-stack">
+      <div class="vid-subs-text" id="subsText">Ready to begin</div>
+    </div>
+  </div>
+
+  <!-- Shared scrub bar -->
+  <div class="scrub" id="scrubBar">
+    <div class="scrub-max" id="scrubMax" style="width:0%;"></div>
+    <div class="scrub-fill" id="scrubFill" style="width:0%;"></div>
+    <div class="scrub-dot" id="scrubDot" style="left:0%;"></div>
+  </div>
+
+  <!-- Shared controls -->
+  <div class="vid-controls">
+    <button class="vid-play-btn" id="playBtn" aria-label="Play/Pause">▶</button>
+    <button class="vid-rewind-btn" id="rewindBtn" aria-label="Rewind 10 seconds" title="Rewind 10 seconds">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 4 A 8 8 0 1 1 4 12"></path>
+        <polyline points="11 1 11 4 14 4"></polyline>
+      </svg>
+      <span class="vid-rewind-num">10</span>
+    </button>
+    <span class="vid-time" id="tDisp">0:00 / 0:00</span>
+    <div class="vid-sep"></div>
+    <span class="vid-segment" id="segLbl">Live inspection walkthrough</span>
+    <span class="vid-synced" title="Both videos are locked to the same timeline.">
+      <svg class="link-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>
+      Synced
+    </span>
+  </div>
+
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────────────
+   Module 4 — dual linked-video player.
+   The bodycam (left) is the timeline master: it carries the audio and the
+   captions and defines the scrub bar. The iPad recording (right) is a silent
+   follower slaved to the master's currentTime. The two clips need not be the
+   same length right now; the follower simply holds its last frame if it is
+   shorter, and is clamped to the master timeline if it is longer. When the
+   final cut makes them equal length, the sync is exact with no extra changes.
+   ───────────────────────────────────────────────────────────────────────── */
+(function () {
+  var master  = document.getElementById('bodycamVideo'); // audio + captions + timeline
+  var slave   = document.getElementById('ipadVideo');     // muted follower
+
+  var playBtn   = document.getElementById('playBtn');
+  var rewindBtn = document.getElementById('rewindBtn');
+  var scrubBar  = document.getElementById('scrubBar');
+  var scrubFill = document.getElementById('scrubFill');
+  var scrubDot  = document.getElementById('scrubDot');
+  var scrubMax  = document.getElementById('scrubMax');
+  var tDisp     = document.getElementById('tDisp');
+  var subsText  = document.getElementById('subsText');
+  var startOverlay = document.getElementById('startOverlay');
+  var endcard   = document.getElementById('endcard');
+  var replayBtn = document.getElementById('replayBtn');
+  var spinner   = document.getElementById('vidLoading');
+
+  var VTT_SRC = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/IMG_8643.vtt';
+  var SUBTITLE_DELAY = -0.5; // matches the other modules: nudge captions slightly later
+
+  var started = false;
+  var subsUnlocked = false;
+  var isDragging = false;
+  var isSeeking = false;
+  var maxWatched = 0;
+  var subtitles = [];
+
+  slave.muted = true; // belt-and-suspenders: the iPad clip is always silent
+
+  /* ---- duration helpers ------------------------------------------------- */
+  function masterDur() { return (isFinite(master.duration) && master.duration > 0) ? master.duration : 0; }
+  function slaveDur()  { return (isFinite(slave.duration)  && slave.duration  > 0) ? slave.duration  : Infinity; }
+
+  /* ---- spinner ---------------------------------------------------------- */
+  function showSpinner() { spinner.classList.add('show'); }
+  function hideSpinner() { spinner.classList.remove('show'); }
+
+  /* ---- keep the follower aligned with the master ------------------------ */
+  function syncSlave(force) {
+    var t = master.currentTime;
+    var sd = slaveDur();
+    if (t <= sd) {
+      if (force || Math.abs(slave.currentTime - t) > 0.30) {
+        try { slave.currentTime = Math.min(t, sd === Infinity ? t : sd); } catch (e) {}
+      }
+    } else {
+      // master has run past the (shorter) follower — let it rest on its last frame
+      if (!slave.paused) slave.pause();
+    }
+  }
+
+  /* ---- play / pause (always drives BOTH videos) ------------------------- */
+  function playBoth() {
+    if (master.ended) { replay(); return; }
+    var p = master.play(); if (p && p.catch) p.catch(function () {});
+    if (master.currentTime < slaveDur() && slave.ended === false) {
+      var q = slave.play(); if (q && q.catch) q.catch(function () {});
+    } else if (master.currentTime < slaveDur()) {
+      var q2 = slave.play(); if (q2 && q2.catch) q2.catch(function () {});
+    }
+    playBtn.textContent = '❚❚';
+  }
+  function pauseBoth() {
+    master.pause(); slave.pause();
+    playBtn.textContent = '▶';
+  }
+  function togglePlay() {
+    if (!started) { startPlayback(); return; }
+    if (master.ended) { replay(); return; }
+    if (master.paused) playBoth(); else pauseBoth();
+  }
+
+  function startPlayback() {
+    if (started) { togglePlay(); return; }
+    started = true;
+    startOverlay.classList.add('hide');
+    showSpinner();
+    syncSlave(true);
+    playBoth();
+  }
+
+  function replay() {
+    hideEndcard();
+    isSeeking = true;
+    master.currentTime = 0;
+    slave.currentTime = 0;
+    maxWatched = 0;
+    render(0);
+    playBoth();
+    setTimeout(function () { isSeeking = false; }, 400);
+  }
+
+  /* ---- end card --------------------------------------------------------- */
+  function showEndcard() { endcard.classList.add('show'); }
+  function hideEndcard() { endcard.classList.remove('show'); }
+
+  /* ---- render scrub / time / captions ----------------------------------- */
+  function fmt(t) {
+    if (!isFinite(t) || t < 0) t = 0;
+    var m = Math.floor(t / 60), s = Math.floor(t % 60).toString().padStart(2, '0');
+    return m + ':' + s;
+  }
+  function render(t) {
+    var d = masterDur();
+    var p  = d ? Math.min((t / d) * 100, 100) : 0;
+    var mp = d ? Math.min((maxWatched / d) * 100, 100) : 0;
+    scrubFill.style.width = p + '%';
+    scrubDot.style.left = p + '%';
+    scrubMax.style.width = mp + '%';
+    tDisp.textContent = fmt(t) + ' / ' + fmt(d);
+    updateSubtitles(t);
+  }
+
+  /* ---- captions (VTT) --------------------------------------------------- */
+  function parseVTT(vttText) {
+    var lines = vttText.split('\n');
+    var blocks = [], cur = [];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line === 'WEBVTT' || (line === '' && cur.length === 0)) continue;
+      if (line === '') { if (cur.length) { blocks.push(cur.join('\n')); cur = []; } continue; }
+      cur.push(line);
+    }
+    if (cur.length) blocks.push(cur.join('\n'));
+    return blocks.map(function (block) {
+      var bl = block.split('\n');
+      var idx = 0;
+      for (var j = 0; j < bl.length; j++) { if (bl[j].indexOf('-->') !== -1) { idx = j; break; } }
+      if (idx === 0 && bl[0].indexOf('-->') === -1) return null;
+      var m = bl[idx].match(/(\d{2}):(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})\.(\d{3})/);
+      if (!m) return null;
+      var start = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) + (+m[4]) / 1000;
+      var end   = (+m[5]) * 3600 + (+m[6]) * 60 + (+m[7]) + (+m[8]) / 1000;
+      return { start: start, end: end, text: bl.slice(idx + 1).join('\n') };
+    }).filter(function (s) { return s !== null; });
+  }
+
+  function loadSubtitles() {
+    fetch(VTT_SRC, { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (txt) {
+        subtitles = parseVTT(txt);
+        if (subtitles.length === 0) throw new Error('No cues parsed');
+        updateSubtitles(master.currentTime || 0);
+      })
+      .catch(function (err) {
+        console.warn('Could not load captions (' + VTT_SRC + '):', err && err.message);
+      });
+  }
+
+  function updateSubtitles(t) {
+    if (!subsUnlocked) { subsText.textContent = '—'; return; }
+    var subT = Math.max(0, t - SUBTITLE_DELAY);
+    var idx = -1;
+    for (var i = 0; i < subtitles.length; i++) {
+      if (subT >= subtitles[i].start) idx = i; else break;
+    }
+    var cur = idx >= 0 ? subtitles[idx] : null;
+    // hide a cue once we are well past its end so the strip clears between lines
+    subsText.textContent = (cur && subT <= cur.end + 0.5) ? cur.text : '—';
+  }
+
+  /* ---- seeking ---------------------------------------------------------- */
+  var scrubRect = null;
+  function updateRect() { scrubRect = scrubBar.getBoundingClientRect(); }
+  window.addEventListener('resize', updateRect);
+
+  function seekTo(clientX) {
+    if (!scrubRect) updateRect();
+    if (!started) { startPlayback(); }
+    var pct = Math.max(0, Math.min(1, (clientX - scrubRect.left) / scrubRect.width));
+    var d = masterDur();
+    if (!d) return;
+    var t = pct * d;
+    isSeeking = true;
+    master.currentTime = t;
+    syncSlave(true);
+    hideEndcard();
+    render(t);
+    setTimeout(function () { isSeeking = false; }, 400);
+  }
+
+  scrubBar.addEventListener('click', function (e) { if (!isDragging) seekTo(e.clientX); });
+  scrubBar.addEventListener('mousedown', function (e) { isDragging = true; scrubBar.classList.add('dragging'); updateRect(); seekTo(e.clientX); });
+  document.addEventListener('mousemove', function (e) { if (isDragging) seekTo(e.clientX); });
+  document.addEventListener('mouseup', function () { if (isDragging) { isDragging = false; scrubBar.classList.remove('dragging'); } });
+  scrubBar.addEventListener('touchstart', function (e) { isDragging = true; scrubBar.classList.add('dragging'); updateRect(); seekTo(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', function (e) { if (isDragging) { seekTo(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+  document.addEventListener('touchend', function () { if (isDragging) { isDragging = false; scrubBar.classList.remove('dragging'); } });
+
+  /* ---- rewind 10 -------------------------------------------------------- */
+  function rewind10() {
+    if (!started) return;
+    var t = Math.max(0, master.currentTime - 10);
+    isSeeking = true;
+    master.currentTime = t;
+    syncSlave(true);
+    hideEndcard();
+    render(t);
+    setTimeout(function () { isSeeking = false; }, 400);
+  }
+  rewindBtn.addEventListener('click', function (e) { e.stopPropagation(); rewind10(); });
+
+  /* ---- wiring ----------------------------------------------------------- */
+  playBtn.addEventListener('click', togglePlay);
+  startOverlay.addEventListener('click', startPlayback);
+  replayBtn.addEventListener('click', function (e) { e.stopPropagation(); replay(); });
+
+  // Clicking either video toggles BOTH (they are linked).
+  master.addEventListener('click', togglePlay);
+  slave.addEventListener('click', togglePlay);
+
+  // The master drives the shared timeline.
+  master.addEventListener('timeupdate', function () {
+    var t = master.currentTime;
+    if (t > maxWatched) maxWatched = t;
+    if (!subsUnlocked && t > 0.3) subsUnlocked = true;
+    render(t);
+    if (!master.paused && !isSeeking) syncSlave(false);
+  });
+
+  master.addEventListener('play',  function () { playBtn.textContent = '❚❚'; if (master.currentTime < slaveDur() && slave.paused) { var q = slave.play(); if (q && q.catch) q.catch(function () {}); } });
+  master.addEventListener('pause', function () { if (!master.ended) playBtn.textContent = '▶'; if (!slave.paused) slave.pause(); });
+  master.addEventListener('ended', function () { playBtn.textContent = '▶'; if (!slave.paused) slave.pause(); showEndcard(); });
+
+  // Spinner reflects the master's buffering state.
+  master.addEventListener('waiting',  function () { if (started) showSpinner(); });
+  master.addEventListener('stalled',  function () { if (started && !master.paused) showSpinner(); });
+  master.addEventListener('seeking',  function () { if (started && !master.paused) showSpinner(); });
+  master.addEventListener('playing',  hideSpinner);
+  master.addEventListener('canplay',  hideSpinner);
+  master.addEventListener('canplaythrough', hideSpinner);
+  master.addEventListener('seeked',   hideSpinner);
+  master.addEventListener('error',    hideSpinner);
+
+  master.addEventListener('loadedmetadata', function () { render(master.currentTime || 0); updateRect(); });
+
+  // Block right-click / PiP on both clips.
+  [master, slave].forEach(function (v) {
+    v.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    try { v.disablePictureInPicture = true; } catch (e) {}
+    v.addEventListener('enterpictureinpicture', function () {
+      try { if (document.pictureInPictureElement) document.exitPictureInPicture(); } catch (e) {}
+    });
+  });
+
+  // Spacebar toggles play/pause (unless typing or a control is focused).
+  document.addEventListener('keydown', function (e) {
+    if (e.code !== 'Space' && e.key !== ' ') return;
+    var el = document.activeElement, tag = el ? el.tagName : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || (el && el.isContentEditable)) return;
+    e.preventDefault();
+    togglePlay();
+  });
+
+  // Pause both when the tab/window is hidden, then re-sync on return.
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && started && !master.paused && !master.ended) pauseBoth();
+  });
+
+  loadSubtitles();
+  render(0);
+})();
+</script>
+
+<script src="theme.js"></script>
+</body>
+</html>
