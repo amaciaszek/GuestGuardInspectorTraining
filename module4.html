@@ -365,7 +365,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
                disablePictureInPicture disableRemotePlayback
                controlsList="nodownload noplaybackrate nopictureinpicture noremoteplayback"
                class="bodycam-video">
-          <source src="https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/IMG_8643.MOV">
+          <source src="https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/IMG_8643.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       </div>
@@ -492,6 +492,90 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
 
   slave.muted = true; // belt-and-suspenders: the iPad clip is always silent
 
+  /* ====================== DEBUG INSTRUMENTATION ======================
+     Set VERBOSE_DEBUG = false to silence everything below. Open DevTools
+     → Console, reload, click to start, and read the [M4 …] lines.        */
+  var VERBOSE_DEBUG = true;
+  var T0 = performance.now();
+  function _el() { return ((performance.now() - T0) / 1000).toFixed(2) + 's'; }
+  function dbg() {
+    if (!VERBOSE_DEBUG) return;
+    var a = ['%c[M4 ' + _el() + ']', 'color:#C9A84C;font-weight:bold'];
+    for (var i = 0; i < arguments.length; i++) a.push(arguments[i]);
+    console.log.apply(console, a);
+  }
+  var NET = ['EMPTY', 'IDLE', 'LOADING', 'NO_SOURCE'];
+  var RDY = ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT', 'HAVE_FUTURE', 'HAVE_ENOUGH'];
+  var MEDIA_ERR = { 1: 'ABORTED', 2: 'NETWORK', 3: 'DECODE', 4: 'SRC_NOT_SUPPORTED' };
+
+  function srcOf(v) { var s = v.querySelector('source'); return v.currentSrc || (s && s.src) || v.src || '(none)'; }
+  function vtag(v) { return v === master ? 'BODYCAM' : 'IPAD   '; }
+  function errStr(v) { return v.error ? ((MEDIA_ERR[v.error.code] || v.error.code) + ' "' + (v.error.message || '') + '"') : 'none'; }
+
+  function dumpVideo(v) {
+    var r = v.getBoundingClientRect();
+    dbg(vtag(v),
+      '| net=' + NET[v.networkState],
+      'ready=' + RDY[v.readyState],
+      'intrinsic=' + v.videoWidth + 'x' + v.videoHeight,
+      'dur=' + (isFinite(v.duration) ? v.duration.toFixed(2) : 'NaN'),
+      'rendered=' + Math.round(r.width) + 'x' + Math.round(r.height),
+      'paused=' + v.paused,
+      'err=' + errStr(v),
+      '| ' + srcOf(v).split('/').pop());
+  }
+  function dumpLayout() {
+    function box(sel) {
+      var n = (typeof sel === 'string') ? document.querySelector(sel) : sel;
+      if (!n) return '(missing)';
+      var r = n.getBoundingClientRect();
+      return Math.round(r.width) + 'x' + Math.round(r.height);
+    }
+    dbg('LAYOUT',
+      '| stage=' + box('#stage'),
+      'bodycam[media=' + box(master.closest('.frame-media')) + ' video=' + box(master) + ']',
+      'ipad[frame=' + box('.ipad-frame') + ' screen=' + box('.ipad-screen') + ' video=' + box(slave) + ']');
+  }
+
+  // Per-event logging on BOTH clips — this is what reveals a decode/format failure.
+  ['loadstart', 'durationchange', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough',
+   'play', 'playing', 'pause', 'waiting', 'stalled', 'suspend', 'seeking', 'seeked',
+   'ended', 'error', 'abort', 'emptied'].forEach(function (ev) {
+    [master, slave].forEach(function (v) {
+      v.addEventListener(ev, function () {
+        if (ev === 'error') dbg(vtag(v), 'EVENT error →', errStr(v));
+        else dbg(vtag(v), 'EVENT', ev);
+        if (ev === 'loadedmetadata' || ev === 'error' || ev === 'canplay') dumpVideo(v);
+      });
+    });
+  });
+
+  // HEAD probe of each media URL: status, MIME type, size, byte-range + cache.
+  function probe(url, label) {
+    fetch(url, { method: 'HEAD' }).then(function (r) {
+      var ct = r.headers.get('content-type') || '?';
+      dbg('PROBE ' + label, '| HTTP ' + r.status,
+        'type=' + ct,
+        'size=' + (r.headers.get('content-length') ? (parseInt(r.headers.get('content-length'), 10) / 1048576).toFixed(1) + 'MB' : '?'),
+        'accept-ranges=' + (r.headers.get('accept-ranges') || 'none'),
+        'cf-cache=' + (r.headers.get('cf-cache-status') || '?'));
+      if (ct.indexOf('quicktime') !== -1 || /\.mov(\?|$)/i.test(url)) {
+        dbg('PROBE ' + label, '⚠ This is a .MOV / video/quicktime. Safari plays it; Chrome, Edge and Firefox generally CANNOT decode it and will show a black frame. Re-encode to MP4 (H.264 + AAC, ffmpeg -movflags +faststart).');
+      }
+    }).catch(function (e) { dbg('PROBE ' + label, 'HEAD failed (CORS or network):', e && e.message); });
+  }
+  probe(srcOf(master), 'bodycam');
+  probe(srcOf(slave), 'ipad');
+
+  // Force the loaders and snapshot intrinsic + rendered sizes over time.
+  try { master.load(); slave.load(); dbg('called .load() on both clips'); }
+  catch (e) { dbg('load() threw', e && e.message); }
+  [300, 1500, 4000].forEach(function (ms) {
+    setTimeout(function () { dbg('── snapshot @' + ms + 'ms ──'); dumpVideo(master); dumpVideo(slave); dumpLayout(); }, ms);
+  });
+  dbg('UA', navigator.userAgent);
+  /* ==================== END DEBUG INSTRUMENTATION ==================== */
+
   /* ---- duration helpers ------------------------------------------------- */
   function masterDur() { return (isFinite(master.duration) && master.duration > 0) ? master.duration : 0; }
   function slaveDur()  { return (isFinite(slave.duration)  && slave.duration  > 0) ? slave.duration  : Infinity; }
@@ -517,11 +601,13 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   /* ---- play / pause (always drives BOTH videos) ------------------------- */
   function playBoth() {
     if (master.ended) { replay(); return; }
-    var p = master.play(); if (p && p.catch) p.catch(function () {});
-    if (master.currentTime < slaveDur() && slave.ended === false) {
-      var q = slave.play(); if (q && q.catch) q.catch(function () {});
-    } else if (master.currentTime < slaveDur()) {
-      var q2 = slave.play(); if (q2 && q2.catch) q2.catch(function () {});
+    var p = master.play();
+    if (p && p.then) p.then(function () { dbg('BODYCAM play() resolved'); })
+                      .catch(function (e) { dbg('BODYCAM play() REJECTED →', e && (e.name + ': ' + e.message)); });
+    if (master.currentTime < slaveDur()) {
+      var q = slave.play();
+      if (q && q.then) q.then(function () { dbg('IPAD play() resolved'); })
+                        .catch(function (e) { dbg('IPAD play() REJECTED →', e && (e.name + ': ' + e.message)); });
     }
     playBtn.textContent = '❚❚';
   }
