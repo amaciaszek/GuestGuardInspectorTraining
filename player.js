@@ -119,7 +119,9 @@ function ggDiagnose() {
 });
 let ggProgN = 0;
 video.addEventListener('progress', function () { if ((ggProgN++ % 3) === 0) ggLog('progress'); });
-ggDiagnose();
+// Wait until the dynamically selected chapter source becomes current. Running
+// this immediately can HEAD the static fallback source instead of ?ch=N.
+video.addEventListener('loadedmetadata', ggDiagnose, { once: true });
 
 // --- Prefetch the remaining clips, in order, once the current one is ready -
 // window.GG_PREFETCH is set per-module (the remaining parts' video URLs).
