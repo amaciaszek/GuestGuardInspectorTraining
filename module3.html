@@ -396,7 +396,9 @@ body.light-mode .video-notice strong { color: var(--teal); }
 </section>
 
 <link rel="stylesheet" href="training-progress.css">
+<script>window.GG_MODULE_ID = 3;</script>
 <script src="progress-config.js"></script>
+<script src="training-api.js"></script>
 <script src="training-progress.js" defer></script>
 <script src="theme.js"></script>
 <script>
@@ -746,6 +748,9 @@ function openVideo(id) {
   }
   if (getRestrictedIds(currentRoleProfile).includes(id)) return;
   const meta = videos.find(v => v.id === id);
+  // Module 3 uses a library rather than ?ch=N, so provide a stable numeric
+  // chapter key for the inspector progress API.
+  window.GG_PART_KEY = '3-' + (videos.findIndex(v => v.id === id) + 1);
   if (!meta) return;
   currentVideoMeta = meta;
   maxWatched = 0;
@@ -925,6 +930,9 @@ video.addEventListener('ended', () => {
   playBtn.textContent = '▶';
   updateHoverIcon();
   if (vidFadeBlack) vidFadeBlack.style.opacity = '1';
+  if (window.GGTraining && window.GG_PART_KEY) {
+    window.GGTraining.markPartComplete(window.GG_PART_KEY);
+  }
 });
 
 // Loading spinner — reassure on slow connections that real content is coming.

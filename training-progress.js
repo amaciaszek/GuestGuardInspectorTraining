@@ -106,6 +106,21 @@
         saveLocal();
       }).catch(function(){});
   }
+  function mergeAuthoritative(event) {
+    const progress = event && event.detail && event.detail.progress;
+    if (!progress) return;
+    Object.keys(progress).forEach(function(key){
+      const incoming=progress[key]||{}, local=state[key]||{};
+      state[key]=Object.assign({},local,{
+        completed:Boolean(local.completed||incoming.completed),
+        currentSection:Math.max(Number(local.currentSection)||0,Number(incoming.currentSegment)||0),
+        updatedAt:incoming.lastUpdated||local.updatedAt
+      });
+    });
+    saveLocal();
+  }
   function boot(){ document.querySelectorAll('video').forEach(bindVideo); render(); pullRemote(); setTimeout(render,250); setTimeout(render,1000); }
+  document.addEventListener('gg:progressloaded', mergeAuthoritative);
+  document.addEventListener('gg:progresssaved', mergeAuthoritative);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 }());

@@ -725,6 +725,9 @@ video.addEventListener('ended', () => {
   if (vidFadeBlack) vidFadeBlack.style.opacity = '1';
   flashHighlights(true);
   showEndcard();
+
+  // Server-authoritative inspector progress hook.
+  document.dispatchEvent(new CustomEvent('gg:partend'));
 });
 
 // Loading spinner — show whenever playback is waiting on data, hide once ready.
@@ -953,6 +956,9 @@ function updateDisplay(t){
   
   if(activeIdx !== currentGroupIdx){
     currentGroupIdx = activeIdx;
+
+    // Entering section i means all earlier sections have been watched.
+    document.dispatchEvent(new CustomEvent('gg:section', { detail: { index: activeIdx } }));
     
     // Show section transition overlay only if:
     // - Not the first section (skip intro)

@@ -772,7 +772,12 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
 
   master.addEventListener('play',  function () { playBtn.textContent = '❚❚'; if (master.currentTime < slaveDur() && slave.paused) { var q = slave.play(); if (q && q.catch) q.catch(function () {}); } });
   master.addEventListener('pause', function () { if (!master.ended) playBtn.textContent = '▶'; if (!slave.paused) slave.pause(); });
-  master.addEventListener('ended', function () { playBtn.textContent = '▶'; if (!slave.paused) slave.pause(); showEndcard(); });
+  master.addEventListener('ended', function () {
+    playBtn.textContent = '▶';
+    if (!slave.paused) slave.pause();
+    showEndcard();
+    document.dispatchEvent(new CustomEvent('gg:partend'));
+  });
 
   // Spinner reflects the master's buffering state.
   master.addEventListener('waiting',  function () { if (started) showSpinner(); });
@@ -815,7 +820,9 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
 </script>
 
 <link rel="stylesheet" href="training-progress.css">
+<script>window.GG_MODULE_ID = 4;</script>
 <script src="progress-config.js"></script>
+<script src="training-api.js"></script>
 <script src="training-progress.js" defer></script>
 <script src="theme.js"></script>
 </body>
