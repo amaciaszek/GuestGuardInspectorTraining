@@ -400,6 +400,18 @@ function updateHoverIcon() {
   }
 }
 
+// Brief playback feedback. The icon fades even if the pointer remains over
+// the video, so it confirms the action without covering the lesson.
+let hoverCueTimer = null;
+function showHoverCue() {
+  if (!hoverOverlay || video.style.display === 'none') return;
+  updateHoverIcon();
+  hoverOverlay.classList.add('show');
+  clearTimeout(hoverCueTimer);
+  hoverCueTimer = setTimeout(() => hoverOverlay.classList.remove('show'), 700);
+}
+vidBox.addEventListener('mouseenter', showHoverCue);
+
 // NEW: Show section transition overlay
 
 function clearBulletsAndListsForTitleCard() {
@@ -675,6 +687,7 @@ vidBox.addEventListener('click', (e) => {
   if(e.target === video || e.target === vidBox) {
     if(video.style.display !== 'none') {
       togglePlay();
+      showHoverCue();
     }
   }
 });
@@ -763,9 +776,9 @@ document.addEventListener('keydown', (e) => {
   const el = document.activeElement;
   const tag = el ? el.tagName : '';
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || (el && el.isContentEditable)) return;
-  if (video.style.display === 'none') return; // nothing playing yet
   e.preventDefault();
   togglePlay();
+  showHoverCue();
 });
 
 // NEW: Draggable scrubber implementation

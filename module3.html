@@ -63,6 +63,11 @@ a { color: inherit; }
 }
 body.light-mode .hdr { border-bottom: 2px solid var(--ink); box-shadow: none; }
 .hdr-logo { height: 56px; width: auto; display: block; }
+.hdr-back { display:inline-flex; align-items:center; gap:7px; padding:7px 11px; border:1px solid var(--border); color:var(--ink-mid); text-decoration:none; font-size:.72rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; transition:all .2s ease; }
+.hdr-back:hover { color:var(--gold); border-color:var(--gold); }
+body.light-mode .hdr-back:hover { color:var(--teal); border-color:var(--teal); }
+.hdr-back:active { transform:translateY(1px); }
+.hdr-back-arrow { font-size:.95rem; line-height:1; }
 .hdr-sep { width: 1px; height: 28px; background: var(--b2); }
 .hdr-title { font-size: 1rem; font-weight: 500; color: var(--ink); letter-spacing: .01em; }
 .hdr-tag { margin-left: auto; font-family: var(--mono); font-size: .65rem; color: var(--ink-mid); letter-spacing: .12em; border: 1px solid var(--border); padding: 5px 12px; background: var(--s2); }
@@ -177,7 +182,7 @@ body.light-mode .vid-rewind-btn:hover { color: var(--teal); border-color: var(--
 .vid-rewind-num { position: absolute; font-family: var(--mono); font-size: 8px; font-weight: 700; line-height: 1; top: 53%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
 /* Hover overlay (play/pause icon on video hover) */
 .vid-hover-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity 0.5s ease; z-index: 10; background: rgba(0,0,0,.3); }
-.vid-box:hover .vid-hover-overlay { opacity: 1; }
+.vid-hover-overlay.show { opacity: 1; }
 .vid-hover-icon { width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; background: rgba(201,168,76,.15); border: 3px solid var(--gold); border-radius: 50%; font-size: 36px; color: var(--gold); backdrop-filter: blur(8px); }
 body.light-mode .vid-hover-icon { background: rgba(26,74,46,.15); border-color: var(--teal); color: var(--teal); }
 /* Section title card transition overlay */
@@ -265,6 +270,7 @@ body.light-mode .video-notice strong { color: var(--teal); }
 <body>
 <header class="hdr">
   <img id="logoImg" src="https://guestguard-platform.vercel.app/_next/image?url=%2Fgg_logo_small.png&w=640&q=75&dpl=dpl_DveWjYKd9Bi3M3CYp1G8uPrAWQZY" alt="GuestGuard Logo" class="hdr-logo">
+  <a class="hdr-back" href="index.html" aria-label="Back to training modules"><span class="hdr-back-arrow">←</span> Modules</a>
   <div class="hdr-sep"></div>
   <div class="hdr-title">GuestGuard Website Tutorials</div>
   <div class="hdr-tag">MODULE 3</div>
@@ -663,6 +669,16 @@ function updateHoverIcon() {
   hoverIcon.textContent = video.paused ? '▶' : '❚❚';
 }
 
+let hoverCueTimer = null;
+function showHoverCue() {
+  if (!hoverOverlay || !playerView.classList.contains('active') || video.style.display === 'none') return;
+  updateHoverIcon();
+  hoverOverlay.classList.add('show');
+  clearTimeout(hoverCueTimer);
+  hoverCueTimer = setTimeout(() => hoverOverlay.classList.remove('show'), 700);
+}
+vidBox.addEventListener('mouseenter', showHoverCue);
+
 let titleCardActive = false;
 let subsUnlocked = false;
 
@@ -897,13 +913,13 @@ playBtn.addEventListener('click', () => {
   if (video.style.display === 'none' || !video.src) startPlayback();
   else if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
   else { video.pause(); playBtn.textContent = '▶'; }
-  updateHoverIcon();
+  showHoverCue();
 });
 vidBox.addEventListener('click', e => {
   if ((e.target === video || e.target === vidBox) && video.style.display !== 'none') {
     if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
     else { video.pause(); playBtn.textContent = '▶'; }
-    updateHoverIcon();
+    showHoverCue();
   }
 });
 video.addEventListener('loadedmetadata', () => { totalTimeEl.textContent = formatTime(video.duration); });
@@ -963,7 +979,7 @@ document.addEventListener('keydown', (e) => {
   if (video.style.display === 'none' || !video.src) { startPlayback(); return; }
   if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
   else { video.pause(); playBtn.textContent = '▶'; }
-  updateHoverIcon();
+  showHoverCue();
 });
 scrubBar.addEventListener('click', e => {
   const rect = scrubBar.getBoundingClientRect();

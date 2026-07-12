@@ -310,7 +310,7 @@ body.light-mode .video-callout-num { background: var(--teal); color: #fff; }
   background: rgba(0, 0, 0, 0.3);
 }
 
-.vid-box:hover .vid-hover-overlay {
+.vid-hover-overlay.show {
   opacity: 1;
 }
 
