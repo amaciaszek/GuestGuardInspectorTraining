@@ -407,7 +407,15 @@
       this.loadStoredAuth();
 
       const params = new URLSearchParams(window.location.search);
-      const tempToken = params.get('temp_token');
+      const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+      // generate-token implementations have used a few names over time. They
+      // all represent the same short-lived token accepted by exchange-token.
+      const tokenNames = ['temp_token', 'training_token', 'tempToken', 'token'];
+      let tempToken = null;
+      for (const name of tokenNames) {
+        tempToken = params.get(name) || hashParams.get(name);
+        if (tempToken) break;
+      }
 
       if (!this.isAuthenticated() && tempToken) {
         await this.authenticateWithTempToken(tempToken);
@@ -416,7 +424,10 @@
       // Strip the used temp_token from the URL so refreshes don't replay it.
       if (tempToken) {
         const url = new URL(window.location);
-        url.searchParams.delete('temp_token');
+        tokenNames.forEach(name => url.searchParams.delete(name));
+        const cleanHash = new URLSearchParams((url.hash || '').replace(/^#/, ''));
+        tokenNames.forEach(name => cleanHash.delete(name));
+        url.hash = cleanHash.toString() ? '#' + cleanHash.toString() : '';
         window.history.replaceState({}, '', url);
       }
 
@@ -438,4 +449,3 @@
   window.GGTraining = GGTraining;
   GGTraining.init();
 })();
-
