@@ -349,7 +349,131 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   .vid-synced { display: none; }
   .section-nav { padding:10px 1rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
-</style>
+
+/* MODULE 4 DESKTOP SIDE-RAIL LAYOUT */
+@media (min-width: 1101px) {
+  /* The room list becomes a fixed right rail below the header. */
+  .section-nav {
+    position: fixed;
+    top: 65px;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+    gap: 9px;
+    padding: 24px 14px;
+    overflow-y: auto;
+    background: var(--s2);
+    border-left: 1px solid var(--border);
+    border-bottom: 0;
+    box-shadow: -10px 0 28px rgba(0,0,0,.12);
+  }
+
+  .section-nav::before {
+    content: 'ROOMS & SECTIONS';
+    display: block;
+    margin: 0 5px 8px;
+    color: var(--gold-hi);
+    font: 600 .66rem var(--mono);
+    letter-spacing: .16em;
+  }
+
+  body.light-mode .section-nav::before { color: var(--teal); }
+
+  .section-link {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    font-size: .78rem;
+  }
+
+  .section-name {
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  /* Captions occupy the left rail; videos retain the full vertical height. */
+  .player-shell {
+    width: auto;
+    height: calc(100vh - 65px);
+    margin-right: 260px;
+    display: grid;
+    grid-template-columns: clamp(220px, 18vw, 310px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 14px 48px;
+    overflow: hidden;
+  }
+
+  .stage {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    min-height: 0;
+    border-bottom: 0;
+  }
+
+  .vid-subs {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 30px 22px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow-y: auto;
+    background: var(--s2);
+    border-top: 0;
+    border-right: 1px solid var(--border);
+    box-shadow: 10px 0 28px rgba(0,0,0,.1);
+  }
+
+  .vid-subs-stack {
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 18px;
+  }
+
+  .vid-subs-stack::before {
+    content: 'LIVE CAPTIONS';
+    color: var(--gold-hi);
+    font: 600 .66rem var(--mono);
+    letter-spacing: .16em;
+  }
+
+  body.light-mode .vid-subs-stack::before { color: var(--teal); }
+
+  .vid-subs-text {
+    max-width: 100%;
+    text-align: left;
+    font-size: clamp(1rem, 1.15vw, 1.2rem);
+    line-height: 1.55;
+  }
+
+  .scrub {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .vid-controls {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1450px) {
+  .section-nav { width: 225px; }
+  .player-shell {
+    margin-right: 225px;
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .stage { gap: 18px; padding-left: 18px; padding-right: 18px; }
+}
+/* END MODULE 4 DESKTOP SIDE-RAIL LAYOUT */</style>
 </head>
 <body>
 
@@ -479,7 +603,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
    shorter, and is clamped to the master timeline if it is longer. When the
    final cut makes them equal length, the sync is exact with no extra changes.
    ───────────────────────────────────────────────────────────────────────── */
-var MODULE4_BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/';
+var MODULE4_BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module4/';
 var MODULE4_SECTIONS = [
   { n:1, key:'4-1', slug:'propertywide', title:'Property-Wide Inspection', short:'Property Wide' },
   { n:2, key:'4-2', slug:'commonroom', title:'Common Room Inspection', short:'Common Room' },
