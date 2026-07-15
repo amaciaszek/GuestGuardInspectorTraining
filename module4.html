@@ -116,11 +116,22 @@ body.light-mode .toggle-slider { transform: translateX(0); background: var(--tea
 
 /* ─────────────── PLAYER SHELL ─────────────── */
 .player-shell {
-  height: calc(100vh - 64px);
+  height: calc(100vh - 125px);
   display: flex; flex-direction: column;
   min-height: 0; overflow: hidden;
   background: var(--bg);
 }
+.section-nav { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; padding:10px 2rem; background:var(--bg); border-bottom:1px solid var(--border); }
+.section-link { min-width:0; display:flex; align-items:center; gap:8px; padding:9px 10px; color:var(--ink-mid); background:var(--s2); border:1px solid var(--border); border-radius:6px; text-decoration:none; font-size:.75rem; font-weight:500; transition:color .2s,border-color .2s,background-color .2s; }
+.section-link:hover,.section-link:focus-visible { color:var(--ink); border-color:var(--gold); outline:none; }
+.section-link.is-current { color:var(--ink); border-color:var(--gold); background:var(--gold-dim); }
+.section-link.is-complete { color:var(--gold-hi); }
+body.light-mode .section-link:hover,body.light-mode .section-link:focus-visible,body.light-mode .section-link.is-current { border-color:var(--teal); }
+body.light-mode .section-link.is-complete { color:var(--teal); }
+.section-num { flex:0 0 auto; width:22px; height:22px; display:grid; place-items:center; border:1px solid currentColor; border-radius:50%; font:600 .68rem var(--mono); }
+.section-link.is-complete .section-num { font-size:0; }
+.section-link.is-complete .section-num::after { content:'\2713'; font-size:.72rem; }
+.section-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 /* The two-video stage */
 .stage {
@@ -328,6 +339,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   .ipad-screen { height: auto; width: 100%; }
   .ipad-screen video { height: auto; width: 100%; }
   .vid-subs { position: sticky; bottom: 96px; }
+  .section-nav { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
 @media (max-width: 768px) {
   html { font-size: 15px; }
@@ -335,6 +347,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   .hdr-title { font-size: 1.05rem; }
   .vid-controls { padding: 0 14px; gap: 12px; }
   .vid-synced { display: none; }
+  .section-nav { padding:10px 1rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 </style>
 </head>
@@ -353,6 +366,8 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   </div>
 </header>
 
+<nav class="section-nav" id="sectionNav" aria-label="Module 4 sections"></nav>
+
 <div class="player-shell">
 
   <div class="stage" id="stage">
@@ -365,7 +380,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
                disablePictureInPicture disableRemotePlayback
                controlsList="nodownload noplaybackrate nopictureinpicture noremoteplayback"
                class="bodycam-video">
-          <source src="https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/IMG_8643.mp4" type="video/mp4">
+          <source id="bodycamSource" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       </div>
@@ -380,7 +395,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
             <video id="ipadVideo" playsinline muted preload="auto"
                    disablePictureInPicture disableRemotePlayback
                    controlsList="nodownload noplaybackrate nopictureinpicture noremoteplayback">
-              <source src="https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/RecordIt-1781822440.mp4" type="video/mp4">
+              <source id="ipadSource" type="video/mp4">
             </video>
           </div>
         </div>
@@ -389,14 +404,14 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
 
     <!-- Start overlay -->
     <div class="start-overlay" id="startOverlay">
-      <div class="start-eyebrow">Module 4 · Room-by-Room Walkthrough</div>
+      <div class="start-eyebrow" id="startEyebrow">Module 4 · Part 1 of 6</div>
       <div class="start-ring-wrap">
         <div class="start-ring"></div>
         <div class="start-ring"></div>
         <div class="start-ring"></div>
         <div class="start-icon">▶</div>
       </div>
-      <div class="start-title">Live Inspection Walkthrough</div>
+      <div class="start-title" id="startTitle">Property-Wide Inspection</div>
       <div class="start-desc">Watch the inspector's bodycam on the left and the tablet form being filled out in real time on the right. The two videos play in sync. Click anywhere to begin.</div>
     </div>
 
@@ -408,10 +423,11 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
 
     <!-- End card -->
     <div class="endcard" id="endcard">
-      <div class="endcard-label">Walkthrough Complete</div>
-      <div class="endcard-title">You've finished the live inspection walkthrough.</div>
+      <div class="endcard-label" id="endcardLabel">Section Complete</div>
+      <div class="endcard-title" id="endcardTitle">You've finished this section.</div>
       <div class="endcard-actions">
         <button class="endcard-btn secondary" id="replayBtn">↺ Replay</button>
+        <a class="endcard-btn" id="nextSectionBtn" href="module4.html?ch=2">Next: Common Room →</a>
         <a class="endcard-btn" href="index.html">Back to Modules →</a>
       </div>
     </div>
@@ -444,7 +460,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
     </button>
     <span class="vid-time" id="tDisp">0:00 / 0:00</span>
     <div class="vid-sep"></div>
-    <span class="vid-segment" id="segLbl">Live inspection walkthrough</span>
+    <span class="vid-segment" id="segLbl">Property-Wide Inspection</span>
     <span class="vid-synced" title="Both videos are locked to the same timeline.">
       <svg class="link-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>
       Synced
@@ -463,6 +479,25 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
    shorter, and is clamped to the master timeline if it is longer. When the
    final cut makes them equal length, the sync is exact with no extra changes.
    ───────────────────────────────────────────────────────────────────────── */
+var MODULE4_BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/';
+var MODULE4_SECTIONS = [
+  { n:1, key:'4-1', slug:'propertywide', title:'Property-Wide Inspection', short:'Property Wide' },
+  { n:2, key:'4-2', slug:'commonroom', title:'Common Room Inspection', short:'Common Room' },
+  { n:3, key:'4-3', slug:'kitchen', title:'Kitchen Inspection', short:'Kitchen' },
+  { n:4, key:'4-4', slug:'hallway', title:'Hallway Inspection', short:'Hallway' },
+  { n:5, key:'4-5', slug:'bathroom', title:'Bathroom Inspection', short:'Bathroom' },
+  { n:6, key:'4-6', slug:'bedroom', title:'Bedroom Inspection', short:'Bedroom' }
+].map(function (section) {
+  section.bodycam = MODULE4_BASE + section.slug + '.mp4';
+  section.ipad = MODULE4_BASE + section.slug + '_ipad.mp4';
+  section.vtt = MODULE4_BASE + section.slug + '.vtt';
+  return section;
+});
+var requestedSection = Number(new URLSearchParams(location.search).get('ch')) || 1;
+var activeSection = MODULE4_SECTIONS.find(function (section) { return section.n === requestedSection; }) || MODULE4_SECTIONS[0];
+window.GG_MODULE_ID = 4;
+window.GG_PART_KEY = activeSection.key;
+
 (function () {
   var master  = document.getElementById('bodycamVideo'); // audio + captions + timeline
   var slave   = document.getElementById('ipadVideo');     // muted follower
@@ -480,7 +515,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   var replayBtn = document.getElementById('replayBtn');
   var spinner   = document.getElementById('vidLoading');
 
-  var VTT_SRC = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/IMG_8643.vtt';
+  var VTT_SRC = activeSection.vtt;
   var SUBTITLE_DELAY = -0.5; // matches the other modules: nudge captions slightly later
 
   var started = false;
@@ -489,6 +524,28 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   var isSeeking = false;
   var maxWatched = 0;
   var subtitles = [];
+
+  document.title = 'GuestGuard Inspector Training — Module 4: ' + activeSection.short;
+  document.getElementById('bodycamSource').src = activeSection.bodycam;
+  document.getElementById('ipadSource').src = activeSection.ipad;
+  document.getElementById('startEyebrow').textContent = 'Module 4 · Part ' + activeSection.n + ' of ' + MODULE4_SECTIONS.length;
+  document.getElementById('startTitle').textContent = activeSection.title;
+  document.getElementById('segLbl').textContent = 'Part ' + activeSection.n + ': ' + activeSection.title;
+  var nextSection = MODULE4_SECTIONS[activeSection.n];
+  var nextSectionBtn = document.getElementById('nextSectionBtn');
+  if (nextSection) {
+    nextSectionBtn.href = 'module4.html?ch=' + nextSection.n;
+    nextSectionBtn.textContent = 'Next: ' + nextSection.short + ' →';
+    document.getElementById('endcardTitle').textContent = 'You\'ve finished ' + activeSection.title + '.';
+  } else {
+    document.getElementById('endcardLabel').textContent = 'Module 4 Complete';
+    document.getElementById('endcardTitle').textContent = 'You\'ve finished the field-inspection walkthrough.';
+    nextSectionBtn.remove();
+  }
+  document.getElementById('sectionNav').innerHTML = MODULE4_SECTIONS.map(function (section) {
+    var current = section.key === activeSection.key ? ' is-current' : '';
+    return '<a class="section-link' + current + '" data-section-key="' + section.key + '" href="module4.html?ch=' + section.n + '"' + (current ? ' aria-current="page"' : '') + '><span class="section-num">' + section.n + '</span><span class="section-name">' + section.short + '</span></a>';
+  }).join('');
 
   slave.muted = true; // belt-and-suspenders: the iPad clip is always silent
 
@@ -820,7 +877,6 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
 </script>
 
 <link rel="stylesheet" href="training-progress.css">
-<script>window.GG_MODULE_ID = 4;</script>
 <script src="progress-config.js"></script>
 <script src="training-api.js"></script>
 <script src="training-progress.js" defer></script>

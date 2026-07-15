@@ -12,7 +12,10 @@
   function saveLocal() { localStorage.setItem(STORE_KEY, JSON.stringify(state)); render(); }
   function inferActiveKey() {
     if (pageModule === 1 || pageModule === 2) return pageModule + '-' + (Number(new URLSearchParams(location.search).get('ch')) || 1);
-    if (pageModule === 4) return '4-1';
+    if (pageModule === 4) {
+      const section=Number(new URLSearchParams(location.search).get('ch'));
+      return '4-' + (section >= 1 && section <= 6 ? section : 1);
+    }
     return null;
   }
   function sourceId(video) {
@@ -55,7 +58,10 @@
     const all = document.getElementById('allChapters');
     if (all) { try { return JSON.parse(all.textContent).chapters.map(function(c){ return {key:pageModule+'-'+c.n,label:'Part '+c.n+': '+c.short,href:'?ch='+c.n}; }); } catch (_) {} }
     if (pageModule === 3) return Array.from(document.querySelectorAll('[data-watch]')).map(function(el){ return {key:'3-'+el.dataset.watch,label:(el.querySelector('h3')||{}).textContent || el.dataset.watch,el:el}; });
-    if (pageModule === 4) return [{key:'4-1',label:'Live Property Walkthrough',href:'module4.html'}];
+    if (pageModule === 4) {
+      const labels=['Property Wide','Common Room','Kitchen','Hallway','Bathroom','Bedroom'];
+      return labels.map(function(label,i){ return {key:'4-'+(i+1),label:'Part '+(i+1)+': '+label,href:'module4.html?ch='+(i+1)}; });
+    }
     return [];
   }
   function done(key) { return Boolean(state[key] && state[key].completed); }
@@ -72,9 +78,10 @@
       anchor.parentNode.insertBefore(shell,anchor);
     }
     items().forEach(function(x){ if(x.el){ x.el.classList.toggle('is-complete',done(x.key)); const old=x.el.querySelector('.gg-watch-badge'); if(old)old.remove(); if(done(x.key))x.el.appendChild(badge()); }});
+    document.querySelectorAll('[data-section-key]').forEach(function(link){ link.classList.toggle('is-complete',done(link.dataset.sectionKey)); });
     document.querySelectorAll('.module-card').forEach(function(card,i){
       const prefix=(i+1)+'-'; const keys=Object.keys(state).filter(function(k){return k.indexOf(prefix)===0;});
-      const expected=(i===0?3:(i===1?5:keys.length)); const completed=keys.filter(done).length;
+      const expected=(i===0?3:(i===1?5:(i===3?6:keys.length))); const completed=keys.filter(done).length;
       const moduleDone=expected>0 && completed>=expected;
       card.classList.toggle('is-complete',moduleDone);
       const old=card.querySelector('.gg-watch-badge'); if(old)old.remove();
@@ -84,6 +91,7 @@
   }
   function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
   function bindVideo(video) {
+    if (pageModule === 4 && video.id !== 'bodycamVideo') return;
     if (video.dataset.ggProgressBound) return; video.dataset.ggProgressBound='1';
     video.addEventListener('loadedmetadata',function(){ activeKey=keyFor(video); render(); });
     video.addEventListener('timeupdate',function(){ if(Date.now()-lastSavedAt>5000){ lastSavedAt=Date.now(); update(video,false); } });
