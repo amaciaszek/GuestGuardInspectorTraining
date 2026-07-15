@@ -1,0 +1,46 @@
+/* Shared GuestGuard training volume controls */
+.gg-volume-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 0 9px;
+  height: 36px;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.gg-volume-toggle {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-mid);
+  cursor: pointer;
+  transition: color .2s ease, background-color .2s ease;
+}
+.gg-volume-toggle:hover,
+.gg-volume-toggle:focus-visible {
+  color: var(--gold-hi);
+  background: var(--gold-dim);
+  outline: none;
+}
+body.light-mode .gg-volume-toggle:hover,
+body.light-mode .gg-volume-toggle:focus-visible { color: var(--teal); background: var(--teal-dim); }
+.gg-volume-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gg-volume-slider {
+  width: 92px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+body.light-mode .gg-volume-slider { accent-color: var(--teal); }
+@media (max-width: 760px) {
+  .gg-volume-control { gap: 4px; padding: 0 5px; }
+  .gg-volume-slider { width: 62px; }
+}

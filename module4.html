@@ -473,7 +473,88 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   }
   .stage { gap: 18px; padding-left: 18px; padding-right: 18px; }
 }
-/* END MODULE 4 DESKTOP SIDE-RAIL LAYOUT */</style>
+/* END MODULE 4 DESKTOP SIDE-RAIL LAYOUT */
+/* MODULE 4 CENTERED CAPTION REDESIGN */
+@media (min-width: 1101px) {
+  /* Keep only the room navigation as a side rail. */
+  .player-shell {
+    position: relative;
+    width: auto;
+    height: calc(100vh - 65px);
+    margin-right: 260px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .stage {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    border-bottom: 0;
+  }
+
+  /* Captions become a familiar, eye-level overlay above the controls. */
+  .vid-subs {
+    position: absolute;
+    left: 50%;
+    bottom: 78px;
+    z-index: 35;
+    width: min(760px, calc(100% - 80px));
+    height: auto;
+    min-height: 0;
+    padding: 11px 18px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, 8px);
+    overflow: visible;
+    pointer-events: none;
+    background: rgba(10, 13, 20, .88);
+    border: 1px solid rgba(201, 168, 76, .48);
+    border-radius: 8px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.36);
+    backdrop-filter: blur(10px);
+    transition: opacity .18s ease, visibility .18s ease, transform .18s ease;
+  }
+
+  .vid-subs.has-caption {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+  }
+
+  .vid-subs-stack {
+    width: 100%;
+    display: block;
+  }
+
+  .vid-subs-stack::before { content: none; }
+
+  .vid-subs-text {
+    max-width: 100%;
+    color: #fff;
+    font-size: clamp(.98rem, 1.15vw, 1.16rem);
+    line-height: 1.38;
+    font-weight: 500;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0,0,0,.8);
+  }
+
+  .scrub,
+  .vid-controls {
+    flex: 0 0 auto;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1450px) {
+  .player-shell { margin-right: 225px; }
+}
+/* END MODULE 4 CENTERED CAPTION REDESIGN */
+</style>
+  <link rel="stylesheet" href="volume-controls.css">
 </head>
 <body>
 
@@ -1005,5 +1086,6 @@ window.GG_PART_KEY = activeSection.key;
 <script src="training-api.js"></script>
 <script src="training-progress.js" defer></script>
 <script src="theme.js"></script>
+  <script src="volume-controls.js" defer></script>
 </body>
 </html>

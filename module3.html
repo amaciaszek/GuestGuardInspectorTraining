@@ -266,6 +266,7 @@ body.light-mode .video-notice strong { color: var(--teal); }
 /* ADDED: fade-to-black at clip end (hides the held final frame) */
 .vid-fade-black { position:absolute; inset:0; z-index:9; background:#000; opacity:0; pointer-events:none; }
 </style>
+  <link rel="stylesheet" href="volume-controls.css">
 </head>
 <body>
 <header class="hdr">
@@ -1000,5 +1001,6 @@ if (rewindBtn) {
   });
 }
 </script>
+  <script src="volume-controls.js" defer></script>
 </body>
 </html>
