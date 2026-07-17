@@ -1,0 +1,10 @@
+# Local Cloudflare and Node tooling
+**/node_modules/
+**/.wrangler/
+*.log
+
+# Local secrets
+**/.dev.vars
+**/.env
+**/.env.*
+!**/.env.example
