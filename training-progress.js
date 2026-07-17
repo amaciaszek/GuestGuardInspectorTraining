@@ -16,6 +16,7 @@
       const section=Number(new URLSearchParams(location.search).get('ch'));
       return '4-' + (section >= 1 && section <= 6 ? section : 1);
     }
+    if (pageModule === 5) return '5-1';
     return null;
   }
   function sourceId(video) {
@@ -130,5 +131,16 @@
   function boot(){ document.querySelectorAll('video').forEach(bindVideo); render(); pullRemote(); setTimeout(render,250); setTimeout(render,1000); }
   document.addEventListener('gg:progressloaded', mergeAuthoritative);
   document.addEventListener('gg:progresssaved', mergeAuthoritative);
+  document.addEventListener('gg:quizcomplete', function (event) {
+    const detail = event.detail || {};
+    const key = detail.itemId || '5-1';
+    state[key] = Object.assign({}, state[key] || {}, {
+      completed: true,
+      percent: 100,
+      updatedAt: new Date().toISOString()
+    });
+    saveLocal();
+    sync(key, true);
+  });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 }());

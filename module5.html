@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>GuestGuard Inspector Training — Module 5 Quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@300;400;500;600;700&family=Inconsolata:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="module5.css">
+  <link rel="stylesheet" href="training-progress.css">
+</head>
+<body>
+  <header class="hdr">
+    <img src="https://guestguard-platform.vercel.app/_next/image?url=%2Fgg_logo_small.png&w=640&q=75&dpl=dpl_DveWjYKd9Bi3M3CYp1G8uPrAWQZY" alt="GuestGuard" class="hdr-logo">
+    <span class="hdr-sep"></span><span class="hdr-title">Inspector Training Program</span>
+    <span class="hdr-tag">MODULE 5</span><a class="hdr-back" href="index.html">← Back to Modules</a>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme"><span class="toggle-slider"></span></button>
+  </header>
+  <main class="quiz-main">
+    <section class="quiz-intro">
+      <div><div class="eyebrow">PRACTICE QUIZ</div><h1 id="quizTitle">Knowledge Check</h1><p class="lede">Choose the even number in each group. This ten-question version is temporary test content for validating the complete quiz flow.</p></div>
+      <div class="quiz-count" id="quizCount">Loading questions…</div>
+    </section>
+    <div class="progress" aria-hidden="true"><div class="progress-bar" id="quizProgress"></div></div>
+    <div class="status" id="quizStatus">Loading the quiz…</div>
+    <form id="quizForm">
+      <div class="question-list" id="questionList" hidden></div>
+      <div class="actions" id="quizActions" hidden><button class="submit" id="quizSubmit" type="submit" disabled>Submit answers</button><span class="answer-note" id="answerNote"></span></div>
+    </form>
+    <section class="result" id="quizResult" aria-live="polite"></section>
+  </main>
+  <script src="quiz-config.js"></script>
+  <script src="progress-config.js"></script>
+  <script src="training-api.js"></script>
+  <script src="training-progress.js"></script>
+  <script src="theme.js"></script>
+  <script src="module5.js"></script>
+</body>
+</html>
