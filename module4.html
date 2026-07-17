@@ -274,9 +274,6 @@ body.light-mode .vid-rewind-btn:hover { color: var(--teal); border-color: var(--
 .vid-time { font-family: var(--mono); font-size: 0.95rem; color: var(--ink-mid); min-width: 84px; }
 .vid-sep { width: 1px; height: 24px; background: var(--border); }
 .vid-segment { flex: 1; font-size: 0.9rem; color: var(--ink); font-weight: 500; }
-.vid-synced { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-mid); }
-.vid-synced .link-ico { width: 13px; height: 13px; stroke: var(--gold); fill: none; stroke-width: 2; }
-body.light-mode .vid-synced .link-ico { stroke: var(--teal); }
 
 /* ─────────────── START OVERLAY ─────────────── */
 .start-overlay {
@@ -346,7 +343,6 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   .hdr { height: auto; padding: 14px 1rem; flex-wrap: wrap; gap: 12px; }
   .hdr-title { font-size: 1.05rem; }
   .vid-controls { padding: 0 14px; gap: 12px; }
-  .vid-synced { display: none; }
   .section-nav { padding:10px 1rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
@@ -666,10 +662,6 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
     <span class="vid-time" id="tDisp">0:00 / 0:00</span>
     <div class="vid-sep"></div>
     <span class="vid-segment" id="segLbl">Property-Wide Inspection</span>
-    <span class="vid-synced" title="Both videos are locked to the same timeline.">
-      <svg class="link-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>
-      Synced
-    </span>
   </div>
 
 </div>

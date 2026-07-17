@@ -17,10 +17,10 @@
   function setTheme(theme) {
     if (theme === 'light') {
       body.classList.add('light-mode');
-      logoImg.src = logos.light;
+      if (logoImg) logoImg.src = logos.light;
     } else {
       body.classList.remove('light-mode');
-      logoImg.src = logos.dark;
+      if (logoImg) logoImg.src = logos.dark;
     }
     localStorage.setItem('guestguard-theme', theme);
   }
@@ -29,7 +29,7 @@
   setTheme(savedTheme);
   
   // Toggle theme on click
-  themeToggle.addEventListener('click', () => {
+  if (themeToggle) themeToggle.addEventListener('click', () => {
     const currentTheme = body.classList.contains('light-mode') ? 'light' : 'dark';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
