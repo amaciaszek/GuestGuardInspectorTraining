@@ -17,7 +17,7 @@
   </header>
   <main class="quiz-main">
     <section class="quiz-intro">
-      <div><div class="eyebrow">PRACTICE QUIZ</div><h1 id="quizTitle">Knowledge Check</h1><p class="lede">Choose the even number in each group. This ten-question version is temporary test content for validating the complete quiz flow.</p></div>
+      <div><div class="eyebrow">CERTIFICATION QUIZ</div><h1 id="quizTitle">Knowledge Check</h1><p class="lede">Your first attempt contains 30 questions selected from a 50-question bank. Failed attempts may be followed by up to three 20-question retakes.</p><p class="attempt-meta" id="quizAttemptMeta"></p></div>
       <div class="quiz-count" id="quizCount">Loading questions…</div>
     </section>
     <div class="progress" aria-hidden="true"><div class="progress-bar" id="quizProgress"></div></div>
@@ -27,6 +27,7 @@
       <div class="actions" id="quizActions" hidden><button class="submit" id="quizSubmit" type="submit" disabled>Submit answers</button><span class="answer-note" id="answerNote"></span></div>
     </form>
     <section class="result" id="quizResult" aria-live="polite"></section>
+    <aside class="test-controls" aria-label="Temporary quiz testing controls"><div><strong>Testing only</strong><span>These controls will be removed for the final certification.</span></div><button type="button" id="testMarkComplete">Mark complete</button><button type="button" id="testMarkIncomplete">Mark incomplete</button><button type="button" id="testReset" class="danger">Reset quiz</button></aside>
   </main>
   <script src="quiz-config.js"></script>
   <script src="progress-config.js"></script>

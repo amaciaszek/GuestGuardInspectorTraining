@@ -142,5 +142,10 @@
     saveLocal();
     sync(key, true);
   });
+  document.addEventListener('gg:quizteststate', function (event) {
+    const detail = event.detail || {}, key = detail.itemId || '5-1';
+    state[key] = Object.assign({}, state[key] || {}, { completed: !!detail.completed, percent: detail.completed ? 100 : 0, maxTime: detail.completed ? 1 : 0, duration: 1, updatedAt: new Date().toISOString() });
+    saveLocal();
+  });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 }());

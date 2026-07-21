@@ -20,6 +20,7 @@ const PART_DURATIONS = {
   '2-3': 363.7,  // Bathroom & Hallway
   '2-4': 276.7,  // Bedroom
   '2-5': 429.6,  // Common Room & Overall
+  '5-1': 1,      // Certification quiz (binary required completion)
   // TODO: add Module 3 (video library, per-item minutes) and Module 4 here
   // once you decide how they count toward the total. Any part not listed is
   // simply excluded from the denominator, so partial rollout is safe.
@@ -36,6 +37,7 @@ const SECTION_TIMINGS = {
   '2-3': { durations: [71.8, 139.2, 152.0] },
   '2-4': { durations: [130.2, 146.0] },
   '2-5': { durations: [159.5, 116.7, 153.0] },
+  '5-1': { durations: [1] },
 };
 
 // ---------------------------------------------------------------------------
@@ -95,5 +97,4 @@ window.PART_DURATIONS = PART_DURATIONS;
 window.SECTION_TIMINGS = SECTION_TIMINGS;
 window.calculateWeightedPercent = calculateWeightedPercent;
 window.partPercent = partPercent;
-
 

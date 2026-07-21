@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS quizzes (
   title TEXT NOT NULL,
   questions TEXT NOT NULL,
   answer_key TEXT NOT NULL,
-  pass_mark INTEGER NOT NULL DEFAULT 8
+  pass_mark INTEGER NOT NULL DEFAULT 80
 );
 
 CREATE TABLE IF NOT EXISTS results (
@@ -21,11 +21,33 @@ CREATE TABLE IF NOT EXISTS results (
 CREATE INDEX IF NOT EXISTS results_seed_submitted_idx
 ON results(seed, submitted_at DESC);
 
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+  id TEXT PRIMARY KEY,
+  quiz_seed TEXT NOT NULL,
+  learner_id TEXT NOT NULL,
+  attempt_number INTEGER NOT NULL,
+  variant_seed TEXT NOT NULL,
+  question_plan TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  score INTEGER,
+  total INTEGER,
+  passed INTEGER,
+  incorrect_ids TEXT,
+  answers TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  submitted_at INTEGER,
+  FOREIGN KEY (quiz_seed) REFERENCES quizzes(seed)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS quiz_attempts_learner_number_idx
+ON quiz_attempts(learner_id, quiz_seed, attempt_number);
+
 INSERT OR REPLACE INTO quizzes (seed, title, questions, answer_key, pass_mark)
 VALUES (
   'demo-even-001',
   'Which of These Is Even?',
   '[{"id":"q1","text":"Which of these numbers is even?","options":[{"id":"a","text":"7"},{"id":"b","text":"12"},{"id":"c","text":"19"},{"id":"d","text":"25"}]},{"id":"q2","text":"Which of these numbers is even?","options":[{"id":"a","text":"31"},{"id":"b","text":"43"},{"id":"c","text":"56"},{"id":"d","text":"67"}]},{"id":"q3","text":"Which of these numbers is even?","options":[{"id":"a","text":"81"},{"id":"b","text":"94"},{"id":"c","text":"105"},{"id":"d","text":"117"}]},{"id":"q4","text":"Which of these numbers is even?","options":[{"id":"a","text":"123"},{"id":"b","text":"135"},{"id":"c","text":"148"},{"id":"d","text":"159"}]},{"id":"q5","text":"Which of these numbers is even?","options":[{"id":"a","text":"171"},{"id":"b","text":"182"},{"id":"c","text":"193"},{"id":"d","text":"205"}]},{"id":"q6","text":"Which of these numbers is even?","options":[{"id":"a","text":"217"},{"id":"b","text":"229"},{"id":"c","text":"240"},{"id":"d","text":"251"}]},{"id":"q7","text":"Which of these numbers is even?","options":[{"id":"a","text":"263"},{"id":"b","text":"274"},{"id":"c","text":"285"},{"id":"d","text":"297"}]},{"id":"q8","text":"Which of these numbers is even?","options":[{"id":"a","text":"309"},{"id":"b","text":"311"},{"id":"c","text":"323"},{"id":"d","text":"336"}]},{"id":"q9","text":"Which of these numbers is even?","options":[{"id":"a","text":"347"},{"id":"b","text":"358"},{"id":"c","text":"369"},{"id":"d","text":"371"}]},{"id":"q10","text":"Which of these numbers is even?","options":[{"id":"a","text":"383"},{"id":"b","text":"395"},{"id":"c","text":"406"},{"id":"d","text":"417"}]}]',
   '{"q1":"b","q2":"c","q3":"b","q4":"c","q5":"b","q6":"c","q7":"b","q8":"d","q9":"b","q10":"c"}',
-  8
+  80
 );

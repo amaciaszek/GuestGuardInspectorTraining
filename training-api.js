@@ -342,6 +342,29 @@
       return !BLOCK_ON_SYNC_FAILURE;
     },
 
+    // Temporary certification-test helper. Unlike normal video progress this
+    // intentionally allows Module 5 to move backward for QA/reset testing.
+    async setTestProgress(partKey, completed) {
+      if (!partKey) return false;
+      const total = Math.max(1, this.totalSections(partKey));
+      this.progress[partKey] = {
+        currentSegment: completed ? total : 0,
+        totalSegments: total,
+        completed: !!completed,
+        lastUpdated: new Date().toISOString(),
+      };
+      this.emit('gg:progressteststate', { partKey, completed: !!completed, progress: this.progress });
+      if (!this.isAuthenticated()) { warn('Test progress changed locally; no authenticated portal session.'); return false; }
+      const payload = { training_progress: { modules: this.nestForServer(), complete_training: this.isAllComplete(), percentCompleted: this.overallPercent(), last_updated: new Date().toISOString() } };
+      const result = await this.fetchWithRetry(async () => {
+        const res = await this.fetchWithAuth(ROUTES.progress, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+        return res.json();
+      }, 'Test progress POST');
+      if (result.success) this.emit('gg:progresssaved', { progress: this.progress, percent: this.overallPercent(), testOverride: true });
+      return result.success;
+    },
+
     // ---------------------------------------------------------------------
     // Status — route + methods are known; payload shape is NOT in Brian's spec.
     // Wired but disabled (see POST_STATUS_ON_COMPLETE). Confirm fields first.
