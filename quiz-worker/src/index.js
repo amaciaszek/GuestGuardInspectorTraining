@@ -1,8 +1,7 @@
 import { CURRICULUM_CATEGORIES, REAL_QUESTION_BANK } from './question-bank.js';
 
-const MAX_ATTEMPTS = 4; // Existing testing behavior; retake flow will be redesigned separately.
+const MAX_ATTEMPTS = 4;
 const INITIAL_QUESTION_COUNT = 50;
-const RETAKE_QUESTION_COUNT = 20;
 
 export default {
   async fetch(request, env) {
@@ -73,7 +72,9 @@ async function startAttempt(env, payload, cors) {
     questionCount: plan.length,
     passMark: quiz.pass_mark,
     retakesRemaining: MAX_ATTEMPTS - attemptNumber,
-    questions: publicQuestions(plan, bank)
+    questions: publicQuestions(plan, bank),
+    selectionMode: attemptNumber === 1 ? 'balanced-initial' : 'targeted-retake',
+    categoryCoverage: categoryCoverage(plan, bank)
   }, 201, cors);
 }
 
@@ -88,7 +89,10 @@ async function submitAttempt(env, payload, cors) {
   const bank = quizBank(quiz);
   const plan = JSON.parse(attempt.question_plan);
   const answers = payload.answers;
-  if (Object.keys(answers).length !== plan.length) return json({ error: 'Every question must be answered' }, 400, cors);
+  const expectedQuestionIds = new Set(plan.map((item) => item.displayId));
+  if (Object.keys(answers).some((id) => !expectedQuestionIds.has(id))) {
+    return json({ error: 'Answers include a question that is not part of this attempt' }, 400, cors);
+  }
 
   let score = 0;
   const missed = [];
@@ -123,7 +127,7 @@ async function submitAttempt(env, payload, cors) {
   }, 200, cors);
 }
 
-function selectQuestions(bank, history, attemptNumber, rng) {
+export function selectQuestions(bank, history, attemptNumber, rng) {
   const allIds = bank.questions.map((q) => q.id);
   if (attemptNumber === 1) {
     const selected = [];
@@ -136,19 +140,47 @@ function selectQuestions(bank, history, attemptNumber, rng) {
     return shuffle(selected, rng);
   }
   const last = history[history.length - 1];
-  const lastMissed = last && last.incorrect_ids ? JSON.parse(last.incorrect_ids) : [];
+  const lastMissed = last && last.incorrect_ids
+    ? JSON.parse(last.incorrect_ids).filter((id) => allIds.includes(id))
+    : [];
+  const retakeQuestionCount = Math.min(allIds.length, lastMissed.length * 2);
+  if (!retakeQuestionCount) throw new Error('Cannot build a retake without missed questions');
+
   const seen = new Set();
   history.forEach((attempt) => JSON.parse(attempt.question_plan || '[]').forEach((item) => seen.add(item.canonicalId)));
-  const missed = shuffle(lastMissed.filter((id) => allIds.includes(id)), rng).slice(0, 10);
-  const unseen = shuffle(allIds.filter((id) => !seen.has(id) && !missed.includes(id)), rng);
-  const other = shuffle(allIds.filter((id) => seen.has(id) && !missed.includes(id)), rng);
-  const chosen = missed.slice();
-  while (chosen.length < RETAKE_QUESTION_COUNT && unseen.length) chosen.push(unseen.shift());
-  while (chosen.length < RETAKE_QUESTION_COUNT && other.length) chosen.push(other.shift());
-  while (chosen.length < RETAKE_QUESTION_COUNT) {
-    const remaining = allIds.filter((id) => !chosen.includes(id));
-    if (!remaining.length) break;
-    chosen.push(remaining[Math.floor(rng() * remaining.length)]);
+
+  // One targeted slot for every missed question. Each slot is filled from the
+  // same curriculum category, but may use either the same question or another
+  // question from that category.
+  const categoryTargets = {};
+  lastMissed.forEach((id) => {
+    const category = bank.byId[id].category;
+    categoryTargets[category] = (categoryTargets[category] || 0) + 1;
+  });
+  const chosen = [];
+  Object.entries(categoryTargets).forEach(([category, count]) => {
+    const candidates = shuffle(
+      bank.questions.filter((question) => question.category === category).map((question) => question.id),
+      rng
+    );
+    if (candidates.length < count) throw new Error(`Not enough ${category} questions to build targeted retake`);
+    chosen.push(...candidates.slice(0, count));
+  });
+
+  // The other half is broad curriculum practice. Prefer questions the learner
+  // has not seen, then fill from previously seen questions without duplicates.
+  const chosenSet = new Set(chosen);
+  const unseen = shuffle(allIds.filter((id) => !seen.has(id) && !chosenSet.has(id)), rng);
+  const other = shuffle(allIds.filter((id) => seen.has(id) && !chosenSet.has(id)), rng);
+  while (chosen.length < retakeQuestionCount && unseen.length) {
+    const id = unseen.shift();
+    chosen.push(id);
+    chosenSet.add(id);
+  }
+  while (chosen.length < retakeQuestionCount && other.length) {
+    const id = other.shift();
+    chosen.push(id);
+    chosenSet.add(id);
   }
   return shuffle(chosen, rng);
 }
@@ -181,8 +213,24 @@ function attemptResponse(attempt, quiz) {
     passMark: quiz.pass_mark,
     retakesRemaining: MAX_ATTEMPTS - attempt.attempt_number,
     questions: publicQuestions(plan, bank),
+    selectionMode: attempt.attempt_number === 1 ? 'balanced-initial' : 'targeted-retake',
+    categoryCoverage: categoryCoverage(plan, bank),
     resumed: true
   };
+}
+
+function categoryCoverage(plan, bank) {
+  const counts = Object.fromEntries(CURRICULUM_CATEGORIES.map((category) => [category.id, 0]));
+  plan.forEach((item) => {
+    const question = bank.byId[item.canonicalId];
+    if (question && Object.prototype.hasOwnProperty.call(counts, question.category)) counts[question.category] += 1;
+  });
+  return CURRICULUM_CATEGORIES.map((category) => ({
+    category: category.label,
+    categoryId: category.id,
+    selected: counts[category.id],
+    initialQuota: category.testCount
+  }));
 }
 
 function quizBank(quiz) {

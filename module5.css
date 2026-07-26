@@ -13,3 +13,6 @@ body{color:var(--ink);transition:background-color .3s ease,color .3s ease}
 .toggle-switch{position:relative;width:48px;height:26px;padding:0;border-radius:13px;border:1px solid var(--border);background:var(--s3);cursor:pointer}
 .toggle-slider{transform:translateX(22px)}
 .light-mode .toggle-slider{transform:translateX(0)}
+.question.unanswered{border-color:var(--red);background:linear-gradient(0deg,var(--red-dim),var(--red-dim)),var(--s1);box-shadow:0 0 0 2px var(--red-dim),0 5px 18px rgba(0,0,0,.08)}
+.question.unanswered .q-number{color:var(--red)}
+.question.unanswered .q-number::after{content:" · ANSWER REQUIRED";font-weight:700}
