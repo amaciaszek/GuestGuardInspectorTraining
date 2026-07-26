@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>GuestGuard Inspector Training — Module 1</title>
+<title>GuestGuard Inspector Training — Step 1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=Inconsolata:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="player.css">
@@ -40,6 +40,7 @@ body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
 @media (max-width:620px){ .chapter-nav-grid{ flex-wrap:wrap; } .chapter-btn{ flex:1 1 45%; } }
 </style>
   <link rel="stylesheet" href="volume-controls.css">
+<link rel="stylesheet" href="header.css">
 </head>
 <body>
 
@@ -47,10 +48,10 @@ body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
 
 <header class="hdr">
   <img id="logoImg" src="https://guestguard-platform.vercel.app/_next/image?url=%2Fgg_logo_small.png&w=640&q=75&dpl=dpl_DveWjYKd9Bi3M3CYp1G8uPrAWQZY" alt="GuestGuard Logo" class="hdr-logo">
-  <a class="hdr-back" href="index.html"><span class="hdr-back-arrow">←</span> Modules</a>
+  <a class="hdr-back" href="index.html"><span class="hdr-back-arrow">←</span> Course Home</a>
   <div class="hdr-sep"></div>
-  <div class="hdr-title" id="vbTitle">GuestGuard Inspector Training — Module 1</div>
-  <div class="hdr-tag">MODULE 1</div>
+  <div class="hdr-title" id="vbTitle">Step 1 — Introduction</div>
+  <div class="hdr-tag">STEP 1</div>
   <div class="theme-toggle">
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" class="toggle-icon sun">
       <circle cx="12" cy="12" r="4"></circle>
@@ -203,7 +204,7 @@ body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
   if (n < ALL.length) {
     window.GG_NEXT = { kind: 'part', title: 'Part ' + (n + 1) + ' — ' + ALL[n].label, hash: 'ch=' + (n + 1) };
   } else {
-    window.GG_NEXT = { kind: 'module', title: 'Module 2 — Inspection Rubric', href: 'module2.html' };
+    window.GG_NEXT = { kind: 'module', title: 'Step 2 — Inspection Rubric', href: 'module2.html' };
   }
 
   // Prioritise the current part; once it's ready, prefetch the remaining parts in order.
@@ -249,7 +250,7 @@ body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
   // GG_QUIZ_REQUIRE_PASS to false to make quizzes informational (shown, but
   // never blocking). Questions for each chapter live in quiz-data.js.
   var GG_QUIZ_MODULE = 'module1';     // which block of GG_QUIZZES to read
-  var GG_QUIZ_LABEL  = 'Module 1';    // label shown above the quiz title
+  var GG_QUIZ_LABEL  = 'Step 1';      // label shown above the quiz title
   var GG_QUIZ_REQUIRE_PASS = true;
 
   var quizzes = window.GG_QUIZZES && window.GG_QUIZZES[GG_QUIZ_MODULE];
@@ -269,7 +270,7 @@ body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
   };
 })();
 </script>
-<script src="player.js"></script>
+<script src="player.js?v=step-headers-1"></script>
 
   <script src="volume-controls.js" defer></script>
 </body>

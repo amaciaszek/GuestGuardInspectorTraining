@@ -1,0 +1,12 @@
+/* Shared header contract for the course home, required steps, and reference library. */
+.hdr{height:64px!important;min-height:64px!important;display:flex!important;align-items:center!important;gap:20px!important;padding:0 2rem!important}
+.hdr-logo{height:56px!important;display:block}
+.hdr-back{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid var(--border);border-radius:5px;background:var(--s2);color:var(--ink-mid);text-decoration:none;font:500 .68rem var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.hdr-back:hover{color:var(--ink);border-color:var(--gold)}
+.hdr-sep{flex:0 0 1px;width:1px!important;height:40px!important;background:var(--border)}
+.hdr-title{min-width:0;flex:1!important;margin:0!important;color:var(--ink)!important;font:500 1.3rem/1.1 var(--display)!important;letter-spacing:.01em!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-tag{flex:0 0 auto;margin-left:0!important;padding:6px 14px!important;border:1px solid var(--gold-lo)!important;border-radius:4px!important;background:var(--gold-dim)!important;color:var(--gold)!important;font:600 .7rem var(--mono)!important;letter-spacing:.1em!important;white-space:nowrap}
+body.light-mode .hdr-tag{background:var(--teal-dim)!important;color:var(--teal)!important;border-color:var(--teal-dim)!important}
+.theme-toggle{flex:0 0 auto;margin-left:0!important}
+@media(max-width:760px){.hdr{padding:0 12px!important;gap:10px!important}.hdr-logo{height:48px!important}.hdr-sep{display:none}.hdr-title{font-size:1.02rem!important}.hdr-back{padding:8px 9px}}
+@media(max-width:560px){.hdr-title{display:none!important}.hdr-tag{padding:5px 8px!important}}

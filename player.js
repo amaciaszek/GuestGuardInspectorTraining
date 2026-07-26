@@ -620,7 +620,10 @@ function updateSubtitles(t) {
   }
 }
 
-document.getElementById('vbTitle').textContent=VB.title;
+const courseStep = Number(window.GG_MODULE_ID) === 1 ? 1 : (Number(window.GG_MODULE_ID) === 2 ? 2 : null);
+document.getElementById('vbTitle').textContent = courseStep
+  ? VB.title.replace(/^Module\s+\d+/i, 'Step ' + courseStep)
+  : VB.title;
 document.getElementById('secLbl').textContent=VB.section;
 document.getElementById('secName').textContent=VB.title;
 

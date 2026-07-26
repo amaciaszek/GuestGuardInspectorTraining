@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>GuestGuard Inspector Training — Module 4</title>
+<title>GuestGuard Inspector Training — Step 3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=Inconsolata:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -551,15 +551,16 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
 /* END MODULE 4 CENTERED CAPTION REDESIGN */
 </style>
   <link rel="stylesheet" href="volume-controls.css">
+<link rel="stylesheet" href="header.css">
 </head>
 <body>
 
 <header class="hdr">
   <img id="logoImg" src="https://guestguard-platform.vercel.app/_next/image?url=%2Fgg_logo_small.png&w=640&q=75&dpl=dpl_DveWjYKd9Bi3M3CYp1G8uPrAWQZY" alt="GuestGuard Logo" class="hdr-logo">
-  <a class="hdr-back" href="index.html"><span class="hdr-back-arrow">←</span> Modules</a>
+  <a class="hdr-back" href="index.html"><span class="hdr-back-arrow">←</span> Course Home</a>
   <div class="hdr-sep"></div>
-  <div class="hdr-title">GuestGuard Inspector Training — Module 4</div>
-  <div class="hdr-tag">MODULE 4</div>
+  <div class="hdr-title">Step 3 — Property Walkthrough</div>
+  <div class="hdr-tag">STEP 3</div>
   <div class="theme-toggle" aria-label="Toggle light and dark mode">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="toggle-icon sun"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
     <div class="toggle-switch" id="themeToggle"><div class="toggle-slider"></div></div>
@@ -567,7 +568,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   </div>
 </header>
 
-<nav class="section-nav" id="sectionNav" aria-label="Module 4 sections"></nav>
+  <nav class="section-nav" id="sectionNav" aria-label="Step 3 chapters"></nav>
 
 <div class="player-shell">
 
@@ -605,7 +606,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
 
     <!-- Start overlay -->
     <div class="start-overlay" id="startOverlay">
-      <div class="start-eyebrow" id="startEyebrow">Module 4 · Part 1 of 6</div>
+      <div class="start-eyebrow" id="startEyebrow">Step 3 · Part 1 of 6</div>
       <div class="start-ring-wrap">
         <div class="start-ring"></div>
         <div class="start-ring"></div>
@@ -722,10 +723,10 @@ window.GG_PART_KEY = activeSection.key;
   var maxWatched = 0;
   var subtitles = [];
 
-  document.title = 'GuestGuard Inspector Training — Module 4: ' + activeSection.short;
+  document.title = 'GuestGuard Inspector Training — Step 3: ' + activeSection.short;
   document.getElementById('bodycamSource').src = activeSection.bodycam;
   document.getElementById('ipadSource').src = activeSection.ipad;
-  document.getElementById('startEyebrow').textContent = 'Module 4 · Part ' + activeSection.n + ' of ' + MODULE4_SECTIONS.length;
+  document.getElementById('startEyebrow').textContent = 'Step 3 · Part ' + activeSection.n + ' of ' + MODULE4_SECTIONS.length;
   document.getElementById('startTitle').textContent = activeSection.title;
   document.getElementById('segLbl').textContent = 'Part ' + activeSection.n + ': ' + activeSection.title;
   var nextSection = MODULE4_SECTIONS[activeSection.n];
@@ -735,7 +736,7 @@ window.GG_PART_KEY = activeSection.key;
     nextSectionBtn.textContent = 'Next: ' + nextSection.short + ' →';
     document.getElementById('endcardTitle').textContent = 'You\'ve finished ' + activeSection.title + '.';
   } else {
-    document.getElementById('endcardLabel').textContent = 'Module 4 Complete';
+    document.getElementById('endcardLabel').textContent = 'Step 3 Complete';
     document.getElementById('endcardTitle').textContent = 'You\'ve finished the field-inspection walkthrough.';
     nextSectionBtn.remove();
   }

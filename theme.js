@@ -16,9 +16,11 @@
   
   function setTheme(theme) {
     if (theme === 'light') {
+      document.documentElement.classList.add('light-mode');
       body.classList.add('light-mode');
       if (logoImg) logoImg.src = logos.light;
     } else {
+      document.documentElement.classList.remove('light-mode');
       body.classList.remove('light-mode');
       if (logoImg) logoImg.src = logos.dark;
     }
