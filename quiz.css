@@ -76,6 +76,16 @@ body.light-mode .ggq-card-num { color: var(--teal); border-color: var(--teal-dim
 }
 .ggq-opt-t { font-size: 13.5px; color: var(--ink); line-height: 1.45; font-weight: 400; }
 
+/* Explicit contrast for native button content in the light theme. */
+body.light-mode .ggq-card-q,
+body.light-mode .ggq-opt,
+body.light-mode .ggq-opt-t,
+body.light-mode .ggq-opt-l {
+  color: #1E1A14;
+}
+body.light-mode .ggq-opt { background: #E8E1D6; border-color: #C0B8AB; }
+body.light-mode .ggq-opt:not(:disabled):hover { background: #DDD5C8; border-color: #786D5E; }
+
 /* Selected (before submit) — strong, obvious in BOTH themes:
    filled accent badge + accent border + tinted fill + inset ring. */
 .ggq-opt.sel {

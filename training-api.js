@@ -365,6 +365,44 @@
       return result.success;
     },
 
+    // Temporary QA helper used by the index-page reset button.
+    async resetAllProgress() {
+      const reset = {};
+      Object.keys(window.PART_DURATIONS || {}).forEach(key => {
+        reset[key] = {
+          currentSegment: 0,
+          totalSegments: Math.max(1, this.totalSections(key)),
+          completed: false,
+          lastUpdated: new Date().toISOString(),
+        };
+      });
+      this.progress = reset;
+      this.emit('gg:progressreset', { progress: reset });
+      if (!this.isAuthenticated()) {
+        warn('Progress reset locally; no authenticated portal session.');
+        return true;
+      }
+      const payload = {
+        training_progress: {
+          modules: this.nestForServer(),
+          complete_training: false,
+          percentCompleted: 0,
+          last_updated: new Date().toISOString(),
+        },
+      };
+      const result = await this.fetchWithRetry(async () => {
+        const res = await this.fetchWithAuth(ROUTES.progress, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+        return res.json();
+      }, 'Progress reset POST');
+      if (result.success) this.emit('gg:progresssaved', { progress: reset, percent: 0, testOverride: true });
+      return result.success;
+    },
+
     // ---------------------------------------------------------------------
     // Status — route + methods are known; payload shape is NOT in Brian's spec.
     // Wired but disabled (see POST_STATUS_ON_COMPLETE). Confirm fields first.

@@ -186,6 +186,10 @@
   }
   document.addEventListener('gg:progressloaded', mergeAuthoritative);
   document.addEventListener('gg:progresssaved', mergeAuthoritative);
+  document.addEventListener('gg:progressreset', function () {
+    state = {};
+    saveLocal();
+  });
   document.addEventListener('gg:quizcomplete', function (event) {
     const detail = event.detail || {};
     const key = detail.itemId || '5-1';

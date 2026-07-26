@@ -144,8 +144,15 @@ body.light-mode .toggle-slider { transform: translateX(22px); background: var(--
 }
 
 .course-content {
-  width: min(1100px, 100%);
+  width: min(1400px, 100%);
   margin: 0 auto;
+}
+
+.course-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, .72fr);
+  gap: 1.75rem;
+  align-items: start;
 }
 
 .course-section-head {
@@ -203,24 +210,45 @@ body.light-mode .course-kicker { color: var(--teal); }
 .module-card.required-card { min-height: 310px; }
 
 .resource-section {
-  margin-top: 4rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
+  padding: 1.5rem;
+  border: 1px solid var(--gold-lo);
+  border-top: 3px solid var(--gold);
+  border-radius: 12px;
+  background: var(--gold-dim);
 }
 
 .resource-grid { display: grid; grid-template-columns: minmax(280px, 1fr); }
 
 .resource-card {
   min-height: 0;
-  padding: 2rem 2.5rem;
+  padding: 2rem 1.5rem;
   text-align: left;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
 }
 
 .resource-card .module-desc { max-width: 650px; }
-.resource-card .module-meta { margin: 0; }
+.resource-card .module-meta { margin-top: .25rem; justify-content: flex-start; }
+.resource-card .module-stat { align-items: flex-start; }
+
+.test-reset-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.test-reset-progress {
+  padding: 9px 13px;
+  color: var(--red);
+  background: var(--red-dim);
+  border: 1px dashed var(--red);
+  border-radius: 6px;
+  cursor: pointer;
+  font: 600 .7rem var(--mono);
+  letter-spacing: .08em;
+}
+.test-reset-progress:disabled { opacity: .55; cursor: wait; }
+.test-reset-message { align-self: center; margin-right: 12px; color: var(--ink-mid); font-size: .8rem; }
 
 body.light-mode .module-card {
   background: var(--s2);
@@ -299,6 +327,10 @@ body.light-mode .module-stat-val { color: var(--teal); }
   .hdr-title { font-size: 1.1rem; }
   .hdr-tag { font-size: 0.65rem; padding: 4px 10px; }
 }
+@media(max-width: 1050px) {
+  .course-layout { grid-template-columns: 1fr; }
+  .resource-section { order: -1; }
+}
 </style>
 </head>
 <body>
@@ -331,6 +363,7 @@ body.light-mode .module-stat-val { color: var(--teal); }
 
 <div class="module-selector">
   <div class="course-content">
+    <div class="course-layout">
     <section aria-labelledby="requiredTrainingTitle">
       <div class="course-section-head">
         <div><div class="course-kicker">REQUIRED FOR CERTIFICATION</div><h1 class="course-heading" id="requiredTrainingTitle">Inspector certification path</h1></div>
@@ -389,20 +422,22 @@ body.light-mode .module-stat-val { color: var(--teal); }
 
     <section class="resource-section" aria-labelledby="resourceTitle">
       <div class="course-section-head">
-        <div><div class="course-kicker">OPTIONAL REFERENCE</div><h2 class="course-heading" id="resourceTitle">Platform help library</h2></div>
-        <p class="course-note">Use this whenever you need a refresher on the GuestGuard website or inspector tools. It does not affect certification progress.</p>
+        <div><div class="course-kicker">RECOMMENDED SUPPORT</div><h2 class="course-heading" id="resourceTitle">Platform help library</h2></div>
       </div>
+      <p class="module-desc">Strongly recommended before starting field work. Return whenever you need a refresher on the GuestGuard website or inspector tools.</p>
       <div class="resource-grid">
         <a href="module3.html" class="module-card resource-card" data-resource="true">
           <div>
             <div class="module-num">REFERENCE LIBRARY</div>
             <div class="module-title">Platform Walkthrough</div>
-            <div class="module-desc">Technical walkthroughs of the GuestGuard website and inspector tools, available whenever you need help.</div>
+            <div class="module-desc">Technical walkthroughs available whenever you need help.</div>
           </div>
-          <div class="module-meta"><div class="module-stat"><div class="module-stat-val">OPTIONAL</div><div class="module-stat-lbl">NO PROGRESS REQUIRED</div></div></div>
+          <div class="module-meta"><div class="module-stat"><div class="module-stat-val">OPEN LIBRARY</div><div class="module-stat-lbl">DOES NOT AFFECT CERTIFICATION</div></div></div>
         </a>
       </div>
     </section>
+    </div>
+    <div class="test-reset-row"><span class="test-reset-message" id="testResetMessage" aria-live="polite"></span><button class="test-reset-progress" id="testResetProgress" type="button">TESTING ONLY · RESET ALL PROGRESS</button></div>
   </div>
 </div>
 
@@ -467,6 +502,44 @@ body.light-mode .module-stat-val { color: var(--teal); }
      the landing page before the learner opens an individual module. -->
 <script src="training-api.js"></script>
 <script src="training-progress.js"></script>
+<script src="quiz-config.js"></script>
+<script>
+(function () {
+  var button = document.getElementById('testResetProgress');
+  var message = document.getElementById('testResetMessage');
+  if (!button) return;
+  button.addEventListener('click', function () {
+    if (!confirm('Reset all video, walkthrough, and certification quiz progress for this test learner?')) return;
+    button.disabled = true;
+    message.textContent = 'Resetting…';
+    var cfg = window.GG_STANDALONE_QUIZ || {};
+    var learnerId = localStorage.getItem('gg_quiz_learner_id');
+    var quizReset = Promise.resolve();
+    if (cfg.apiUrl && cfg.seed && learnerId) {
+      quizReset = fetch(String(cfg.apiUrl).replace(/\/$/, '') + '/test/reset', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({quizSeed:cfg.seed, learnerId:learnerId})
+      }).then(function (response) {
+        if (!response.ok) throw new Error('Quiz reset failed');
+      });
+    }
+    var progressReset = window.GGTraining && window.GGTraining.resetAllProgress
+      ? window.GGTraining.resetAllProgress()
+      : Promise.resolve(true);
+    Promise.all([quizReset, progressReset]).then(function () {
+      localStorage.removeItem('gg-inspector-training-progress-v1');
+      document.dispatchEvent(new CustomEvent('gg:progressreset'));
+      message.textContent = 'All test progress reset.';
+    }).catch(function (error) {
+      console.error('[GG reset]', error);
+      message.textContent = 'Reset failed. Check the console and try again.';
+    }).finally(function () {
+      button.disabled = false;
+    });
+  });
+}());
+</script>
 <script src="theme.js"></script>
 </body>
 </html>
