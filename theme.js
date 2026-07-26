@@ -23,6 +23,11 @@
       if (logoImg) logoImg.src = logos.dark;
     }
     localStorage.setItem('guestguard-theme', theme);
+    if (themeToggle) {
+      const isLight = theme === 'light';
+      themeToggle.setAttribute('aria-pressed', String(isLight));
+      themeToggle.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+    }
   }
   
   // Apply saved theme immediately (before page renders)

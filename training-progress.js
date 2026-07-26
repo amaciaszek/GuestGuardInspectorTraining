@@ -2,7 +2,9 @@
   'use strict';
   const CFG = window.GG_PROGRESS_API || {};
   const STORE_KEY = 'gg-inspector-training-progress-v1';
-  const pageModule = Number((location.pathname.match(/module(\d+)\.html/i) || [])[1] || 0);
+  // Cloudflare serves module1.html at the canonical extensionless /module1 URL.
+  // Recognize both forms so progress identity is stable locally and in production.
+  const pageModule = Number((location.pathname.match(/module(\d+)(?:\.html)?(?:\/)?$/i) || [])[1] || 0);
   let state = readLocal();
   let activeKey = inferActiveKey();
   let lastSentAt = 0;
@@ -11,7 +13,12 @@
   function readLocal() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (_) { return {}; } }
   function saveLocal() { localStorage.setItem(STORE_KEY, JSON.stringify(state)); render(); }
   function inferActiveKey() {
-    if (pageModule === 1 || pageModule === 2) return pageModule + '-' + (Number(new URLSearchParams(location.search).get('ch')) || 1);
+    if (pageModule === 1 || pageModule === 2) {
+      const queryPart = Number(new URLSearchParams(location.search).get('ch'));
+      const hashMatch = (location.hash || '').match(/(?:^#|[&#])ch=(\d+)/i);
+      const hashPart = hashMatch ? Number(hashMatch[1]) : 0;
+      return pageModule + '-' + (queryPart || hashPart || 1);
+    }
     if (pageModule === 4) {
       const section=Number(new URLSearchParams(location.search).get('ch'));
       return '4-' + (section >= 1 && section <= 6 ? section : 1);
@@ -123,6 +130,13 @@
       state[key]=Object.assign({},local,{
         completed:Boolean(local.completed||incoming.completed),
         currentSection:Math.max(Number(local.currentSection)||0,Number(incoming.currentSegment)||0),
+        maxTime:Math.max(
+          Number(local.maxTime)||0,
+          typeof window.partPercent === 'function'
+            ? (Number((window.PART_DURATIONS||{})[key])||0) * window.partPercent(key, Number(incoming.currentSegment)||0) / 100
+            : 0
+        ),
+        duration:Number(local.duration)||Number((window.PART_DURATIONS||{})[key])||0,
         updatedAt:incoming.lastUpdated||local.updatedAt
       });
     });
