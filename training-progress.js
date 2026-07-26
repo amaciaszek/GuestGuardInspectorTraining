@@ -74,16 +74,40 @@
   }
   function done(key) { return Boolean(state[key] && state[key].completed); }
   function badge() { const b=document.createElement('span'); b.className='gg-watch-badge'; b.innerHTML='<span class="gg-watch-dot">✓</span> Watched'; return b; }
+  function overallPercent() {
+    const durations = window.PART_DURATIONS || {};
+    let total = 0, watched = 0;
+    Object.keys(durations).forEach(function(key){
+      const duration = Number(durations[key]) || 0;
+      const p = state[key] || {};
+      total += duration;
+      if (p.completed) watched += duration;
+      else if (Number(p.maxTime)) watched += Math.min(duration, Number(p.maxTime));
+      else if (Number(p.currentSection) && typeof window.partPercent === 'function') {
+        watched += duration * window.partPercent(key, Number(p.currentSection)) / 100;
+      }
+    });
+    return total ? Math.min(100, Math.round(watched / total * 100)) : 0;
+  }
   function render() {
     document.querySelectorAll('.gg-progress-shell').forEach(function(n){n.remove();});
-    const list = items();
-    if (list.length) {
-      const seconds = list.reduce(function(n,x){ return n + Number((state[x.key]||{}).duration || (window.PART_DURATIONS||{})[x.key] || 0); },0);
-      const watched = list.reduce(function(n,x){ const p=state[x.key]||{}; return n + (p.completed ? Number(p.duration || (window.PART_DURATIONS||{})[x.key] || 0) : Number(p.maxTime||0)); },0);
-      const pct = seconds ? Math.min(100,Math.round(watched/seconds*100)) : Math.round(list.filter(function(x){return done(x.key);}).length/list.length*100);
-      const shell=document.createElement('div'); shell.className='gg-progress-shell'; shell.innerHTML='<div class="gg-progress-card"><div class="gg-progress-head"><span class="gg-progress-title">Training progress & contents</span><span class="gg-progress-percent">'+pct+'% complete</span></div><div class="gg-progress-track"><div class="gg-progress-fill" style="width:'+pct+'%"></div></div><nav class="gg-toc" aria-label="Training table of contents">'+list.map(function(x){return '<a class="gg-toc-item '+(done(x.key)?'is-complete ':'')+(x.key===activeKey?'is-current':'')+'" href="'+(x.href||'#')+'"><span class="gg-watch-dot">'+(done(x.key)?'✓':'')+'</span><span>'+escapeHtml(x.label)+'</span></a>';}).join('')+'</nav></div>';
-      const anchor=document.querySelector('.main') || document.querySelector('.module-selector') || document.body;
-      anchor.parentNode.insertBefore(shell,anchor);
+    document.querySelectorAll('.gg-header-progress').forEach(function(n){n.remove();});
+    if (pageModule !== 3) {
+      const pct = overallPercent();
+      const header = document.querySelector('.hdr');
+      if (header) {
+        const compact = document.createElement('div');
+        compact.className = 'gg-header-progress';
+        compact.setAttribute('role', 'progressbar');
+        compact.setAttribute('aria-label', 'Overall required training progress');
+        compact.setAttribute('aria-valuemin', '0');
+        compact.setAttribute('aria-valuemax', '100');
+        compact.setAttribute('aria-valuenow', String(pct));
+        compact.title = 'Overall required training progress: ' + pct + '%';
+        compact.innerHTML = '<span class="gg-header-progress-label">PROGRESS</span><span class="gg-header-progress-track"><span class="gg-header-progress-fill" style="width:'+pct+'%"></span></span><span class="gg-header-progress-value">'+pct+'%</span>';
+        const theme = header.querySelector('.theme-toggle');
+        header.insertBefore(compact, theme || null);
+      }
     }
     items().forEach(function(x){ if(x.el){ x.el.classList.toggle('is-complete',done(x.key)); const old=x.el.querySelector('.gg-watch-badge'); if(old)old.remove(); if(done(x.key))x.el.appendChild(badge()); }});
     document.querySelectorAll('[data-section-key]').forEach(function(link){ link.classList.toggle('is-complete',done(link.dataset.sectionKey)); });
@@ -142,7 +166,17 @@
     });
     saveLocal();
   }
-  function boot(){ document.querySelectorAll('video').forEach(bindVideo); render(); pullRemote(); setTimeout(render,250); setTimeout(render,1000); }
+  function boot(){
+    if (pageModule === 3) {
+      document.querySelectorAll('.gg-progress-shell,.gg-header-progress,.gg-watch-badge').forEach(function(n){n.remove();});
+      return;
+    }
+    document.querySelectorAll('video').forEach(bindVideo);
+    render();
+    pullRemote();
+    setTimeout(render,250);
+    setTimeout(render,1000);
+  }
   document.addEventListener('gg:progressloaded', mergeAuthoritative);
   document.addEventListener('gg:progresssaved', mergeAuthoritative);
   document.addEventListener('gg:quizcomplete', function (event) {
