@@ -51,3 +51,12 @@ VALUES (
   '{"q1":"b","q2":"c","q3":"b","q4":"c","q5":"b","q6":"c","q7":"b","q8":"d","q9":"b","q10":"c"}',
   80
 );
+
+INSERT OR REPLACE INTO quizzes (seed, title, questions, answer_key, pass_mark)
+VALUES (
+  'inspector-certification-v1',
+  'GuestGuard Inspector Certification',
+  '[]',
+  '{}',
+  80
+);

@@ -1,5 +1,7 @@
-const MAX_ATTEMPTS = 4; // initial attempt + three retakes
-const INITIAL_QUESTION_COUNT = 30;
+import { CURRICULUM_CATEGORIES, REAL_QUESTION_BANK } from './question-bank.js';
+
+const MAX_ATTEMPTS = 4; // Existing testing behavior; retake flow will be redesigned separately.
+const INITIAL_QUESTION_COUNT = 50;
 const RETAKE_QUESTION_COUNT = 20;
 
 export default {
@@ -55,7 +57,7 @@ async function startAttempt(env, payload, cors) {
 
   const attemptNumber = history.length + 1;
   const variantSeed = crypto.randomUUID();
-  const selectedIds = selectQuestions(bank.questions.map((q) => q.id), history, attemptNumber, seededRandom(variantSeed));
+  const selectedIds = selectQuestions(bank, history, attemptNumber, seededRandom(variantSeed));
   const plan = buildPlan(selectedIds, bank, seededRandom(variantSeed + ':options'));
   const id = crypto.randomUUID();
   const now = Date.now();
@@ -121,8 +123,18 @@ async function submitAttempt(env, payload, cors) {
   }, 200, cors);
 }
 
-function selectQuestions(allIds, history, attemptNumber, rng) {
-  if (attemptNumber === 1) return shuffle(allIds.slice(), rng).slice(0, INITIAL_QUESTION_COUNT);
+function selectQuestions(bank, history, attemptNumber, rng) {
+  const allIds = bank.questions.map((q) => q.id);
+  if (attemptNumber === 1) {
+    const selected = [];
+    for (const category of CURRICULUM_CATEGORIES) {
+      const categoryIds = bank.questions.filter((q) => q.category === category.id).map((q) => q.id);
+      if (categoryIds.length < category.testCount) throw new Error(`Question category ${category.id} does not have enough questions`);
+      selected.push(...shuffle(categoryIds, rng).slice(0, category.testCount));
+    }
+    if (selected.length !== INITIAL_QUESTION_COUNT) throw new Error('Initial quiz category quotas do not total 50 questions');
+    return shuffle(selected, rng);
+  }
   const last = history[history.length - 1];
   const lastMissed = last && last.incorrect_ids ? JSON.parse(last.incorrect_ids) : [];
   const seen = new Set();
@@ -174,6 +186,10 @@ function attemptResponse(attempt, quiz) {
 }
 
 function quizBank(quiz) {
+  if (quiz.seed === 'inspector-certification-v1') {
+    const questions = REAL_QUESTION_BANK;
+    return { questions, key: Object.fromEntries(questions.map((q) => [q.id, q.correct])), byId: Object.fromEntries(questions.map((q) => [q.id, q])) };
+  }
   if (quiz.seed === 'demo-even-001') return buildDemoBank();
   const questions = JSON.parse(quiz.questions);
   return { questions, key: JSON.parse(quiz.answer_key), byId: Object.fromEntries(questions.map((q) => [q.id, q])) };

@@ -3,6 +3,6 @@
 window.GG_STANDALONE_QUIZ = {
   apiUrl: 'https://guestguard-inspector-quiz-api.guestguard.workers.dev',
   localApiUrl: 'http://localhost:8787',
-  seed: 'demo-even-001',
+  seed: 'inspector-certification-v1',
   passingScore: 80
 };
