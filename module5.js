@@ -21,6 +21,8 @@
   var attempt = null;
   var attemptFinalized = false;
   var leaveSubmissionSent = false;
+  var historyGuardArmed = false;
+  var historyExitInProgress = false;
 
   function debug(message, detail) {
     if (detail === undefined) console.info(LOG, message);
@@ -103,6 +105,7 @@
     status.hidden = true;
     list.hidden = false;
     document.getElementById('quizActions').hidden = false;
+    armHistoryGuard();
     updateProgress();
     debug(data.resumed ? 'Resumed active attempt' : 'Started seeded attempt', {
       attemptId: data.attemptId,
@@ -160,6 +163,14 @@
 
   function activeAttempt() {
     return !!(attempt && attempt.attemptId && !attemptFinalized);
+  }
+
+  function armHistoryGuard() {
+    if (historyGuardArmed) return;
+    history.replaceState({ ggQuizBase: true }, '', location.href);
+    history.pushState({ ggQuizGuard: true }, '', location.href);
+    historyGuardArmed = true;
+    debug('Browser back-button guard armed');
   }
 
   function gradeForDeparture() {
@@ -247,6 +258,35 @@
     if (!confirm('Leaving this quiz will submit and grade it now. Any unanswered questions will be marked incorrect. Do you want to leave?')) return;
     gradeForDeparture().then(function () {
       location.href = destination;
+    }).catch(function (error) {
+      showError('The quiz could not be graded, so you have not been taken away from this page. Please try again.', error);
+    });
+  });
+
+  window.addEventListener('popstate', function () {
+    if (!historyGuardArmed || historyExitInProgress) return;
+
+    // Once an attempt has already been graded, transparently skip the extra
+    // same-page history entry created by the guard.
+    if (!activeAttempt()) {
+      historyExitInProgress = true;
+      history.back();
+      return;
+    }
+
+    // Restore the guard entry before asking. This keeps the learner on the quiz
+    // when they cancel the warning and works for Chrome's Back button as well
+    // as mouse back buttons.
+    history.pushState({ ggQuizGuard: true }, '', location.href);
+    if (!confirm('Leaving this quiz will submit and grade it now. Any unanswered questions will be marked incorrect. Do you want to leave?')) {
+      debug('Browser back navigation cancelled; quiz remains active');
+      return;
+    }
+
+    gradeForDeparture().then(function () {
+      debug('Browser back navigation confirmed; attempt graded');
+      historyExitInProgress = true;
+      history.go(-2);
     }).catch(function (error) {
       showError('The quiz could not be graded, so you have not been taken away from this page. Please try again.', error);
     });
