@@ -111,13 +111,20 @@
     }
     items().forEach(function(x){ if(x.el){ x.el.classList.toggle('is-complete',done(x.key)); const old=x.el.querySelector('.gg-watch-badge'); if(old)old.remove(); if(done(x.key))x.el.appendChild(badge()); }});
     document.querySelectorAll('[data-section-key]').forEach(function(link){ link.classList.toggle('is-complete',done(link.dataset.sectionKey)); });
-    document.querySelectorAll('.module-card').forEach(function(card,i){
-      const prefix=(i+1)+'-'; const keys=Object.keys(state).filter(function(k){return k.indexOf(prefix)===0;});
-      const expected=(i===0?3:(i===1?5:(i===3?6:keys.length))); const completed=keys.filter(done).length;
+    document.querySelectorAll('.module-card[data-module]').forEach(function(card){
+      const moduleId=Number(card.dataset.module);
+      const prefix=moduleId+'-';
+      const keys=Object.keys(state).filter(function(k){return k.indexOf(prefix)===0;});
+      const expected={1:3,2:5,4:6,5:1}[moduleId]||0;
+      const completed=keys.filter(done).length;
       const moduleDone=expected>0 && completed>=expected;
       card.classList.toggle('is-complete',moduleDone);
       const old=card.querySelector('.gg-watch-badge'); if(old)old.remove();
-      if(moduleDone) card.appendChild(badge());
+      if(moduleDone) {
+        const b=badge();
+        b.lastChild.textContent=' '+(card.dataset.completionLabel||'Completed');
+        card.appendChild(b);
+      }
       else if(completed){ const b=document.createElement('span'); b.className='gg-watch-badge'; b.innerHTML='<span class="gg-watch-dot">'+completed+'</span> In progress'; card.appendChild(b); }
     });
   }

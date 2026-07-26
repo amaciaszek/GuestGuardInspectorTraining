@@ -138,19 +138,50 @@ body.light-mode .toggle-slider { transform: translateX(22px); background: var(--
 
 /* MODULE SELECTOR PAGE */
 .module-selector {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: calc(100vh - 64px);
   padding: 4rem 2rem;
   background: var(--bg);
 }
 
+.course-content {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+}
+
+.course-section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.course-kicker {
+  font: 600 .72rem var(--mono);
+  letter-spacing: .14em;
+  color: var(--gold);
+}
+
+body.light-mode .course-kicker { color: var(--teal); }
+
+.course-heading {
+  margin: .35rem 0 0;
+  color: var(--ink);
+  font: 600 2rem/1.15 var(--display);
+}
+
+.course-note {
+  max-width: 470px;
+  margin: 0;
+  color: var(--ink-mid);
+  line-height: 1.55;
+  text-align: right;
+}
+
 .module-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 400px));
-  gap: 3rem;
-  max-width: 900px;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 1.5rem;
   width: 100%;
 }
 
@@ -168,6 +199,28 @@ body.light-mode .toggle-slider { transform: translateX(22px); background: var(--
   gap: 1.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
+
+.module-card.required-card { min-height: 310px; }
+
+.resource-section {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.resource-grid { display: grid; grid-template-columns: minmax(280px, 1fr); }
+
+.resource-card {
+  min-height: 0;
+  padding: 2rem 2.5rem;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.resource-card .module-desc { max-width: 650px; }
+.resource-card .module-meta { margin: 0; }
 
 body.light-mode .module-card {
   background: var(--s2);
@@ -239,6 +292,9 @@ body.light-mode .module-stat-val { color: var(--teal); }
 @media(max-width: 640px) {
   .module-grid { grid-template-columns: 1fr; }
   .module-card { padding: 2rem 1.5rem; }
+  .course-section-head { display: block; }
+  .course-note { margin-top: .8rem; text-align: left; }
+  .resource-card { display: flex; text-align: center; }
   .hdr { padding: 0 1rem; gap: 12px; }
   .hdr-title { font-size: 1.1rem; }
   .hdr-tag { font-size: 0.65rem; padding: 4px 10px; }
@@ -274,9 +330,15 @@ body.light-mode .module-stat-val { color: var(--teal); }
 </div>
 
 <div class="module-selector">
-  <div class="module-grid">
-    <a href="module1.html" class="module-card">
-      <div class="module-num">MODULE 1</div>
+  <div class="course-content">
+    <section aria-labelledby="requiredTrainingTitle">
+      <div class="course-section-head">
+        <div><div class="course-kicker">REQUIRED FOR CERTIFICATION</div><h1 class="course-heading" id="requiredTrainingTitle">Inspector certification path</h1></div>
+        <p class="course-note">Complete the required lessons and field walkthrough, then pass the certification exam.</p>
+      </div>
+      <div class="module-grid">
+    <a href="module1.html" class="module-card required-card" data-module="1" data-completion-label="Completed">
+      <div class="module-num">STEP 1 · 3 CHAPTERS</div>
       <div class="module-title">Introduction</div>
       <div class="module-desc">Company overview, platform workflow, and certification standards</div>
       <div class="module-meta">
@@ -287,8 +349,8 @@ body.light-mode .module-stat-val { color: var(--teal); }
       </div>
     </a>
 
-    <a href="module2.html" class="module-card">
-      <div class="module-num">MODULE 2</div>
+    <a href="module2.html" class="module-card required-card" data-module="2" data-completion-label="Completed">
+      <div class="module-num">STEP 2 · 5 CHAPTERS</div>
       <div class="module-title">Inspection Rubric</div>
       <div class="module-desc">Room-by-room walkthrough of the complete inspection checklist</div>
       <div class="module-meta">
@@ -299,18 +361,8 @@ body.light-mode .module-stat-val { color: var(--teal); }
       </div>
     </a>
 
-    <a href="module3.html" class="module-card">
-      <div class="module-num">MODULE 3</div>
-      <div class="module-title">Platform Walkthrough</div>
-      <div class="module-desc">Technical walkthrough of the GuestGuard website and inspector tools</div>
-      <div class="module-meta">
-        <div class="module-stat">
-        </div>
-      </div>
-    </a>
-
-    <a href="module4.html" class="module-card">
-      <div class="module-num">MODULE 4</div>
+    <a href="module4.html" class="module-card required-card" data-module="4" data-completion-label="Completed">
+      <div class="module-num">STEP 3 · 6 CHAPTERS</div>
       <div class="module-title">Property Walkthrough</div>
       <div class="module-desc">Follow an inspector through a live property visit with synchronized bodycam and room views</div>
       <div class="module-meta">
@@ -321,10 +373,10 @@ body.light-mode .module-stat-val { color: var(--teal); }
       </div>
     </a>
 
-    <a href="module5.html" class="module-card">
-      <div class="module-num">MODULE 5</div>
-      <div class="module-title">Knowledge Check</div>
-      <div class="module-desc">Complete a graded quiz and review your results</div>
+    <a href="module5.html" class="module-card required-card" data-module="5" data-completion-label="Passed">
+      <div class="module-num">STEP 4 · FINAL EXAM</div>
+      <div class="module-title">Certification Exam</div>
+      <div class="module-desc">Pass the graded certification exam to complete the required training path</div>
       <div class="module-meta">
         <div class="module-stat">
           <div class="module-stat-val">50</div>
@@ -332,6 +384,25 @@ body.light-mode .module-stat-val { color: var(--teal); }
         </div>
       </div>
     </a>
+      </div>
+    </section>
+
+    <section class="resource-section" aria-labelledby="resourceTitle">
+      <div class="course-section-head">
+        <div><div class="course-kicker">OPTIONAL REFERENCE</div><h2 class="course-heading" id="resourceTitle">Platform help library</h2></div>
+        <p class="course-note">Use this whenever you need a refresher on the GuestGuard website or inspector tools. It does not affect certification progress.</p>
+      </div>
+      <div class="resource-grid">
+        <a href="module3.html" class="module-card resource-card" data-resource="true">
+          <div>
+            <div class="module-num">REFERENCE LIBRARY</div>
+            <div class="module-title">Platform Walkthrough</div>
+            <div class="module-desc">Technical walkthroughs of the GuestGuard website and inspector tools, available whenever you need help.</div>
+          </div>
+          <div class="module-meta"><div class="module-stat"><div class="module-stat-val">OPTIONAL</div><div class="module-stat-lbl">NO PROGRESS REQUIRED</div></div></div>
+        </a>
+      </div>
+    </section>
   </div>
 </div>
 
