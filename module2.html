@@ -37,6 +37,10 @@ body.light-mode .chapter-btn.active .chapter-btn-num{ background:var(--teal); co
 .chapter-btn.active .chapter-btn-name{ color:var(--gold); }
 body.light-mode .chapter-btn.active .chapter-btn-name{ color:var(--teal); }
 .chapter-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.chapter-btn.is-complete{ border-color:color-mix(in srgb,var(--teal) 60%,var(--border)); }
+.chapter-btn.is-complete::after{ content:"✓"; display:grid; place-items:center; flex:0 0 20px; height:20px; margin-left:auto; border-radius:50%; background:var(--teal); color:#fff; font:700 .7rem var(--sans); }
+.chapter-btn.is-complete:not(.active) .chapter-btn-name{ color:var(--teal); }
+.chapter-btn.is-complete:not(.active) .chapter-btn-num{ border-color:var(--teal); color:var(--teal); }
 @media (max-width:620px){ .chapter-nav-grid{ flex-wrap:wrap; } .chapter-btn{ flex:1 1 40%; } }
 </style>
   <link rel="stylesheet" href="volume-controls.css">

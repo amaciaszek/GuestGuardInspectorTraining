@@ -73,6 +73,38 @@
     return [];
   }
   function done(key) { return Boolean(state[key] && state[key].completed); }
+  const REQUIRED_SECTIONS = [
+    ['1-1','Introduction: Welcome'],['1-2','Introduction: Rubric'],['1-3','Introduction: Workflow'],
+    ['2-1','Rubric: Property Wide'],['2-2','Rubric: Kitchen'],['2-3','Rubric: Bath & Hall'],['2-4','Rubric: Bedroom'],['2-5','Rubric: Common Room'],
+    ['4-1','Walkthrough: Property Wide'],['4-2','Walkthrough: Common Room'],['4-3','Walkthrough: Kitchen'],
+    ['4-4','Walkthrough: Hallway'],['4-5','Walkthrough: Bathroom'],['4-6','Walkthrough: Bedroom']
+  ];
+  function requiredLessonsComplete() {
+    return REQUIRED_SECTIONS.every(function (section) { return done(section[0]); });
+  }
+  function priorChaptersComplete(moduleId, chapter) {
+    for (let i = 1; i < chapter; i += 1) if (!done(moduleId + '-' + i)) return false;
+    return true;
+  }
+  function enforcePageAccess() {
+    if (pageModule === 5 && !requiredLessonsComplete()) {
+      location.replace('index.html');
+      return false;
+    }
+    if ((pageModule === 1 || pageModule === 2 || pageModule === 4) && activeKey) {
+      const chapter = Number(activeKey.split('-')[1]);
+      if (!priorChaptersComplete(pageModule, chapter)) {
+        let available = 1;
+        while (done(pageModule + '-' + available)) available += 1;
+        const target = pageModule === 4
+          ? 'module4.html?ch=' + available
+          : 'module' + pageModule + '.html#ch=' + available;
+        location.replace(target);
+        return false;
+      }
+    }
+    return true;
+  }
   function badge() { const b=document.createElement('span'); b.className='gg-watch-badge'; b.innerHTML='<span class="gg-watch-dot">✓</span> Watched'; return b; }
   function overallPercent() {
     const durations = window.PART_DURATIONS || {};
@@ -98,19 +130,45 @@
       if (header) {
         const compact = document.createElement('div');
         compact.className = 'gg-header-progress';
-        compact.setAttribute('role', 'progressbar');
-        compact.setAttribute('aria-label', 'Overall required training progress');
-        compact.setAttribute('aria-valuemin', '0');
-        compact.setAttribute('aria-valuemax', '100');
-        compact.setAttribute('aria-valuenow', String(pct));
         compact.title = 'Overall required training progress: ' + pct + '%';
-        compact.innerHTML = '<span class="gg-header-progress-label">PROGRESS</span><span class="gg-header-progress-track"><span class="gg-header-progress-fill" style="width:'+pct+'%"></span></span><span class="gg-header-progress-value">'+pct+'%</span>';
+        compact.innerHTML =
+          '<button class="gg-header-progress-toggle" type="button" aria-expanded="false">' +
+            '<span class="gg-header-progress-label">PROGRESS</span><span class="gg-header-progress-track" role="progressbar" aria-label="Overall required training progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><span class="gg-header-progress-fill" style="width:'+pct+'%"></span></span><span class="gg-header-progress-value">'+pct+'%</span><span class="gg-header-progress-arrow" aria-hidden="true">▼</span>' +
+          '</button><div class="gg-progress-panel" hidden><div class="gg-progress-panel-title">Completed training sections</div><div class="gg-progress-sections">' +
+          REQUIRED_SECTIONS.map(function(section){
+            const complete=done(section[0]);
+            return '<div class="gg-progress-section'+(complete?' is-complete':'')+'"><span class="gg-progress-section-mark">'+(complete?'✓':'')+'</span><span>'+escapeHtml(section[1])+'</span></div>';
+          }).join('') + '</div></div>';
+        const toggle=compact.querySelector('.gg-header-progress-toggle');
+        const panel=compact.querySelector('.gg-progress-panel');
+        toggle.addEventListener('click',function(){
+          const expanded=toggle.getAttribute('aria-expanded')==='true';
+          toggle.setAttribute('aria-expanded',String(!expanded));
+          panel.hidden=expanded;
+        });
         const theme = header.querySelector('.theme-toggle');
         header.insertBefore(compact, theme || null);
       }
     }
     items().forEach(function(x){ if(x.el){ x.el.classList.toggle('is-complete',done(x.key)); const old=x.el.querySelector('.gg-watch-badge'); if(old)old.remove(); if(done(x.key))x.el.appendChild(badge()); }});
     document.querySelectorAll('[data-section-key]').forEach(function(link){ link.classList.toggle('is-complete',done(link.dataset.sectionKey)); });
+    document.querySelectorAll('.chapter-btn[data-ch]').forEach(function(button){
+      const chapter = Number(button.dataset.ch);
+      const complete = done(pageModule + '-' + chapter);
+      const locked = !priorChaptersComplete(pageModule, chapter);
+      button.classList.toggle('is-complete', complete);
+      button.classList.toggle('is-locked', locked);
+      button.disabled = locked;
+      button.setAttribute('aria-label', 'Chapter ' + chapter + (locked ? ', locked until previous chapter is complete' : (complete ? ', completed' : ', not completed')));
+    });
+    document.querySelectorAll('.section-link[data-section-key]').forEach(function(link){
+      const parts=link.dataset.sectionKey.split('-'), chapter=Number(parts[1]);
+      const locked=!priorChaptersComplete(Number(parts[0]),chapter);
+      link.classList.toggle('is-locked',locked);
+      link.setAttribute('aria-disabled',String(locked));
+      if(locked) link.setAttribute('tabindex','-1'); else link.removeAttribute('tabindex');
+      link.onclick=locked?function(event){event.preventDefault();}:null;
+    });
     document.querySelectorAll('.module-card[data-module]').forEach(function(card){
       const moduleId=Number(card.dataset.module);
       const prefix=moduleId+'-';
@@ -118,7 +176,35 @@
       const expected={1:3,2:5,4:6,5:1}[moduleId]||0;
       const completed=keys.filter(done).length;
       const moduleDone=expected>0 && completed>=expected;
+      const examLocked=moduleId===5 && !requiredLessonsComplete();
+      const firstIncomplete=Array.from({length:expected},function(_,index){return index+1;})
+        .find(function(chapter){return !done(moduleId+'-'+chapter);});
+      if(firstIncomplete && (moduleId===1 || moduleId===2)) {
+        card.href='module'+moduleId+'.html#ch='+firstIncomplete;
+        card.title='Resume at Chapter '+firstIncomplete;
+      } else if(firstIncomplete && moduleId===4) {
+        card.href='module4.html?ch='+firstIncomplete;
+        card.title='Resume at Chapter '+firstIncomplete;
+      } else if(moduleId===1 || moduleId===2 || moduleId===4) {
+        card.href='module'+moduleId+'.html';
+        card.removeAttribute('title');
+      }
       card.classList.toggle('is-complete',moduleDone);
+      card.classList.toggle('is-locked',examLocked);
+      card.setAttribute('aria-disabled',String(examLocked));
+      if(examLocked) {
+        card.removeAttribute('href');
+        card.title='Complete all lesson chapters to unlock the certification exam';
+        if(!card.querySelector('.module-card-lock')) {
+          const lock=document.createElement('span');
+          lock.className='module-card-lock';
+          lock.textContent='Locked until all chapters are complete';
+          card.appendChild(lock);
+        }
+      } else {
+        const lock=card.querySelector('.module-card-lock'); if(lock) lock.remove();
+        if(moduleId===5) { card.href='module5.html'; card.removeAttribute('title'); }
+      }
       const old=card.querySelector('.gg-watch-badge'); if(old)old.remove();
       if(moduleDone) {
         const b=badge();
@@ -178,6 +264,7 @@
       document.querySelectorAll('.gg-progress-shell,.gg-header-progress,.gg-watch-badge').forEach(function(n){n.remove();});
       return;
     }
+    if (!enforcePageAccess()) return;
     document.querySelectorAll('video').forEach(bindVideo);
     render();
     pullRemote();
