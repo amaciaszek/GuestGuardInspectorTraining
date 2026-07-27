@@ -403,6 +403,51 @@
       return result.success;
     },
 
+    // Temporary QA helper: complete required lessons but leave the exam alone.
+    async completeLessonsForTesting() {
+      const lessonKeys = [
+        '1-1', '1-2', '1-3',
+        '2-1', '2-2', '2-3', '2-4', '2-5',
+        '4-1', '4-2', '4-3', '4-4', '4-5', '4-6',
+      ];
+      lessonKeys.forEach(key => {
+        const total = Math.max(1, this.totalSections(key));
+        this.progress[key] = {
+          currentSegment: total,
+          totalSegments: total,
+          completed: true,
+          lastUpdated: new Date().toISOString(),
+        };
+      });
+      this.emit('gg:progresssaved', {
+        progress: this.progress,
+        percent: this.overallPercent(),
+        testOverride: true,
+      });
+      if (!this.isAuthenticated()) {
+        warn('Lesson progress completed locally; no authenticated portal session.');
+        return true;
+      }
+      const payload = {
+        training_progress: {
+          modules: this.nestForServer(),
+          complete_training: this.isAllComplete(),
+          percentCompleted: this.overallPercent(),
+          last_updated: new Date().toISOString(),
+        },
+      };
+      const result = await this.fetchWithRetry(async () => {
+        const res = await this.fetchWithAuth(ROUTES.progress, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+        return res.json();
+      }, 'Lesson test progress POST');
+      return result.success;
+    },
+
     // ---------------------------------------------------------------------
     // Status — route + methods are known; payload shape is NOT in Brian's spec.
     // Wired but disabled (see POST_STATUS_ON_COMPLETE). Confirm fields first.
