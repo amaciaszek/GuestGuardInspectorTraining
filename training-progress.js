@@ -99,7 +99,12 @@
         const target = pageModule === 4
           ? 'module4.html?ch=' + available
           : 'module' + pageModule + '.html#ch=' + available;
-        location.replace(target);
+        if (pageModule === 1 || pageModule === 2) {
+          history.replaceState(null, '', target);
+          location.reload();
+        } else {
+          location.replace(target);
+        }
         return false;
       }
     }
