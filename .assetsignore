@@ -4,9 +4,16 @@ quiz-worker/
 # Local development and repository metadata.
 **/node_modules/
 **/.wrangler/
+.codex-tmp/
 .git/
+.gitignore
 .agents/
 .codex/
 
 # Internal question-development source material.
 possible questions.pdf
+output/
+outputs/
+
+# Local validation, caption backups, and generated work files.
+tmp/
