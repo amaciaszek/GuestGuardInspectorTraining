@@ -858,12 +858,14 @@ body.light-mode .sync-btn {
 body.title-card-active .video-callout {
   opacity: 0 !important;
   transform: translateX(-14px) !important;
+  visibility: hidden !important;
 }
 body.title-card-active .bul-inner .grp {
   display: none !important;
 }
 body.title-card-active .bul-inner .sec-hdr {
-  opacity: 0.35;
+  opacity: 0;
+  visibility: hidden;
   transition: opacity 0.35s ease;
 }
 

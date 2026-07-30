@@ -313,7 +313,32 @@ function togglePlay() {
 
 // Timed overlays for narration moments where the script lists numbered items.
 // These are intentionally short and left-weighted so they support the narration without covering the room view.
-const CALLOUTS = GG_PLAYER.callouts;
+const TITLE_CARD_CALLOUT_PREROLL = 3;
+function normalizeCalloutsForTitleCards(callouts) {
+  return callouts.map(callout => {
+    const adjusted = {
+      ...callout,
+      itemStarts: Array.isArray(callout.itemStarts) ? [...callout.itemStarts] : callout.itemStarts,
+      items: Array.isArray(callout.items) ? [...callout.items] : callout.items
+    };
+
+    for (let groupIndex = 1; groupIndex < VB.groups.length; groupIndex++) {
+      const cardTime = VB.groups[groupIndex].triggerTime;
+      if (adjusted.start >= cardTime || adjusted.end < cardTime) continue;
+
+      const startsRightBeforeCard = (cardTime - adjusted.start) <= TITLE_CARD_CALLOUT_PREROLL;
+      if (startsRightBeforeCard && adjusted.end > cardTime) {
+        // This belongs to the new section: defer the heading and list together.
+        adjusted.start = cardTime;
+      } else {
+        // This belongs to the prior section: never let it reappear after the card.
+        adjusted.end = Math.max(adjusted.start, cardTime - 0.01);
+      }
+    }
+    return adjusted;
+  });
+}
+const CALLOUTS = normalizeCalloutsForTitleCards(GG_PLAYER.callouts);
 let currentCalloutIdx = -1;
 // Small sync nudge: positive values make subtitles and callouts appear a little later.
 // Set SHOW_SYNC_TOOLS to true to bring the testing controls back.
@@ -346,8 +371,7 @@ function initSyncTestingControls() {
     currentCalloutIdx = -1;
     currentGroupIdx = -1;
     lastShownSectionIdx = -1;
-    sectionTransition.classList.remove('show');
-  restoreBulletsAndListsAfterTitleCard();
+    cancelSectionTransition();
     videoCallout.classList.remove('show');
     video.currentTime = 0;
     maxWatched = 0;
@@ -361,6 +385,8 @@ initSyncTestingControls();
 
 let lastShownSectionIdx = -1;
 let transitionTimeout = null;
+let transitionRevealTimeout = null;
+let transitionCycle = 0;
 let isSeeking = false;
 
 // Disable right-click on video
@@ -429,11 +455,61 @@ function restoreBulletsAndListsAfterTitleCard() {
   document.body.classList.remove('title-card-active');
 }
 
+function titleCardFadeDurationMs() {
+  const styles = getComputedStyle(sectionTransition);
+  const durations = styles.transitionDuration.split(',').map(value => {
+    const trimmed = value.trim();
+    return trimmed.endsWith('ms') ? parseFloat(trimmed) : parseFloat(trimmed) * 1000;
+  });
+  const delays = styles.transitionDelay.split(',').map(value => {
+    const trimmed = value.trim();
+    return trimmed.endsWith('ms') ? parseFloat(trimmed) : parseFloat(trimmed) * 1000;
+  });
+  return durations.reduce((max, duration, index) => {
+    const delay = delays[index] ?? delays[delays.length - 1] ?? 0;
+    return Math.max(max, duration + delay);
+  }, 0);
+}
+
+function revealListsOnlyAfterTitleCard(cycle, onRevealed) {
+  if (transitionRevealTimeout) clearTimeout(transitionRevealTimeout);
+  // Hard rule: keep every list, list title, and callout hidden until the
+  // transition overlay reaches zero opacity, not merely when fade-out starts.
+  transitionRevealTimeout = setTimeout(() => {
+    if (cycle !== transitionCycle) return;
+    transitionRevealTimeout = null;
+    restoreBulletsAndListsAfterTitleCard();
+    if (video.currentTime > 0.4) subsUnlocked = true;
+    onT(video.currentTime);
+    if (typeof onRevealed === 'function') onRevealed();
+  }, Math.ceil(titleCardFadeDurationMs()) + 50);
+}
+
+function cancelSectionTransition() {
+  if (transitionTimeout) {
+    clearTimeout(transitionTimeout);
+    transitionTimeout = null;
+  }
+  if (transitionRevealTimeout) {
+    clearTimeout(transitionRevealTimeout);
+    transitionRevealTimeout = null;
+  }
+  const cycle = ++transitionCycle;
+  sectionTransition.classList.remove('show');
+  if (document.body.classList.contains('title-card-active')) {
+    revealListsOnlyAfterTitleCard(cycle);
+  }
+}
+
 function showSectionTransition(sectionName, sectionLabel) {
-  // Clear any existing timeout
+  // Clear every phase of a previous card before starting a new card cycle.
   if (transitionTimeout) {
     clearTimeout(transitionTimeout);
   }
+  if (transitionRevealTimeout) {
+    clearTimeout(transitionRevealTimeout);
+  }
+  const cycle = ++transitionCycle;
   
   // Mark the title-card state BEFORE pausing so the pause handler knows this is
   // an automatic, self-resuming pause and keeps the "playing" (❚❚) icon.
@@ -452,13 +528,14 @@ function showSectionTransition(sectionName, sectionLabel) {
   // Show overlay
   sectionTransition.classList.add('show');
   
-  // Auto-hide after 4.5 seconds and resume video
+  // Begin fading after 4.5 seconds. Lists remain locked for the entire fade.
   transitionTimeout = setTimeout(() => {
+    if (cycle !== transitionCycle) return;
+    transitionTimeout = null;
     sectionTransition.classList.remove('show');
-    restoreBulletsAndListsAfterTitleCard();
-    subsUnlocked = true;
-    // Draw the eye to the new section's takeaways as they slide back in.
-    flashHighlights(false);
+    revealListsOnlyAfterTitleCard(cycle, () => {
+      // Draw the eye only after the title card is completely gone.
+      flashHighlights(false);
     
     // Resume playback if it was playing before (but not while the tab is hidden)
     if (wasPlaying) {
@@ -474,6 +551,7 @@ function showSectionTransition(sectionName, sectionLabel) {
         }
       }, 300); // Small delay after overlay fades out
     }
+    });
   }, 4500);
 }
 
@@ -659,8 +737,7 @@ function rewind10() {
   video.currentTime = target;
 
   // Hide any active section title card.
-  sectionTransition.classList.remove('show');
-  restoreBulletsAndListsAfterTitleCard();
+  cancelSectionTransition();
   hideEndcard();
   clearHighlights();
 
@@ -705,6 +782,8 @@ video.addEventListener('timeupdate', () => {
 // (boolean, or { label, title } for custom text). Absent on Module 1, so its
 // behavior is unchanged. Fires once, on the first play near the start of the clip.
 let introCardArmed = !!(typeof GG_PLAYER !== 'undefined' && GG_PLAYER.introCard);
+// The opening list and its heading must not flash before the opening title card.
+if (introCardArmed) clearBulletsAndListsForTitleCard();
 
 video.addEventListener('play', () => {
   isPlaying = true;
@@ -807,8 +886,7 @@ function seekToPosition(clientX) {
   video.currentTime = targetT;
   
   // Hide any active transition
-  sectionTransition.classList.remove('show');
-  restoreBulletsAndListsAfterTitleCard();
+  cancelSectionTransition();
   hideEndcard();
   clearHighlights();
   
