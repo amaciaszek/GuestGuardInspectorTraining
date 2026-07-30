@@ -12,14 +12,14 @@
 
 // Whole-part durations (seconds). Coarse weighting unit: one row per video "part".
 const PART_DURATIONS = {
-  '1-1': 299.7,  // Welcome & Company
-  '1-2': 378.1,  // Inspection Rubric
-  '1-3': 384.9,  // Workflow & Platform
-  '2-1': 250.3,  // Intro & Outside
+  '1-1': 299.8,  // Welcome & Company
+  '1-2': 367.7,  // Inspection Rubric
+  '1-3': 384.7,  // Workflow & Platform
+  '2-1': 249.7,  // Intro & Outside
   '2-2': 312.8,  // Basement & Kitchen
-  '2-3': 363.8,  // Bathroom & Hallway
+  '2-3': 363.7,  // Bathroom & Hallway
   '2-4': 276.7,  // Bedroom
-  '2-5': 429.6,  // Common Room & Overall
+  '2-5': 429.9,  // Common Room & Overall
   '4-1': 1,      // Property-wide field walkthrough (binary completion)
   '4-2': 1,      // Common room field walkthrough
   '4-3': 1,      // Kitchen field walkthrough
@@ -34,13 +34,13 @@ const PART_DURATIONS = {
 // the host's SEGMENT_TIMINGS.durations. Index i = the i-th "group" in that part.
 const SECTION_TIMINGS = {
   '1-1': { durations: [48.5, 28.0, 52.9, 91.4, 52.6, 25.1] },
-  '1-2': { durations: [32.9, 345.1] },
+  '1-2': { durations: [32.9, 334.8] },
   '1-3': { durations: [68.6, 35.7, 104.8, 22.4, 81.2, 31.8, 40.2] },
   '2-1': { durations: [50.2, 100.6, 98.4] },
   '2-2': { durations: [149.4, 163.0] },
   '2-3': { durations: [71.5, 139.1, 152.2] },
   '2-4': { durations: [130.2, 146.0] },
-  '2-5': { durations: [159.5, 116.7, 153.0] },
+  '2-5': { durations: [159.5, 116.7, 153.3] },
   '4-1': { durations: [1] },
   '4-2': { durations: [1] },
   '4-3': { durations: [1] },

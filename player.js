@@ -340,13 +340,126 @@ function normalizeCalloutsForTitleCards(callouts) {
 }
 const CALLOUTS = normalizeCalloutsForTitleCards(GG_PLAYER.callouts);
 let currentCalloutIdx = -1;
-// Small sync nudge: positive values make subtitles and callouts appear a little later.
+// Descript's external VTT timestamps match the subtitle track embedded in the MP4
+// exactly, so captions start from a neutral baseline. The Timing Lab remains
+// available for deliberate per-browser experiments.
 // Set SHOW_SYNC_TOOLS to true to bring the testing controls back.
 const SHOW_SYNC_TOOLS = false;
-const SUBTITLE_DEFAULT = (GG_PLAYER.subtitleDelay ?? -0.5);
+const SUBTITLE_DEFAULT = 0;
 const CALLOUT_DEFAULT = (GG_PLAYER.calloutDelay ?? 0);
-let SUBTITLE_SYNC_DELAY = GG_PLAYER.persistOffsets ? Number(localStorage.getItem('gg-subtitle-offset') ?? SUBTITLE_DEFAULT) : SUBTITLE_DEFAULT;
-let CALLOUT_SYNC_DELAY = GG_PLAYER.persistOffsets ? Number(localStorage.getItem('gg-callout-offset') ?? CALLOUT_DEFAULT) : CALLOUT_DEFAULT;
+// The old independent offsets are intentionally fixed at their chapter defaults.
+// The Timing Lab below supplies the single reload-persistent experiment offset.
+let SUBTITLE_SYNC_DELAY = SUBTITLE_DEFAULT;
+let CALLOUT_SYNC_DELAY = CALLOUT_DEFAULT;
+const MASTER_TIMING_STORAGE_KEY = 'gg-training-master-timing-offset-v2';
+const MASTER_TIMING_MIN = -10;
+const MASTER_TIMING_MAX = 10;
+
+function clampMasterTimingOffset(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(MASTER_TIMING_MIN, Math.min(MASTER_TIMING_MAX, numeric));
+}
+
+function readMasterTimingOffset() {
+  try {
+    return clampMasterTimingOffset(localStorage.getItem(MASTER_TIMING_STORAGE_KEY) ?? 0);
+  } catch (error) {
+    return 0;
+  }
+}
+
+function saveMasterTimingOffset(value) {
+  const offset = clampMasterTimingOffset(value);
+  try {
+    localStorage.setItem(MASTER_TIMING_STORAGE_KEY, String(offset));
+  } catch (error) {}
+  return offset;
+}
+
+let MASTER_TIMING_OFFSET = readMasterTimingOffset();
+
+function formatMasterTimingOffset(value) {
+  const normalized = Math.abs(value) < 0.0001 ? 0 : value;
+  return `${normalized >= 0 ? '+' : ''}${normalized.toFixed(2)}s`;
+}
+
+function initTimingLab() {
+  const lab = document.createElement('aside');
+  lab.className = 'timing-lab';
+  lab.setAttribute('aria-label', 'Training timing controls');
+  lab.innerHTML = `
+    <button class="timing-lab-toggle" type="button" aria-expanded="false">
+      <span class="timing-lab-toggle-label">Timing</span>
+      <strong class="timing-lab-current">${formatMasterTimingOffset(MASTER_TIMING_OFFSET)}</strong>
+    </button>
+    <div class="timing-lab-panel" hidden>
+      <div class="timing-lab-heading">
+        <span>Timing Lab</span>
+        <button class="timing-lab-close" type="button" aria-label="Minimize timing controls">×</button>
+      </div>
+      <p>Moves subtitles, title cards, callouts, and takeaway bullets together.</p>
+      <label for="timingLabOffset">Master offset in seconds</label>
+      <div class="timing-lab-input-row">
+        <button type="button" data-timing-delta="-0.25">−.25</button>
+        <button type="button" data-timing-delta="-0.05">−.05</button>
+        <input id="timingLabOffset" type="number" min="-10" max="10" step="0.05"
+               value="${MASTER_TIMING_OFFSET.toFixed(2)}" inputmode="decimal">
+        <button type="button" data-timing-delta="0.05">+.05</button>
+        <button type="button" data-timing-delta="0.25">+.25</button>
+      </div>
+      <div class="timing-lab-hint">
+        <span><b>+</b> UI appears later</span>
+        <span><b>−</b> UI appears earlier</span>
+      </div>
+      <div class="timing-lab-actions">
+        <button class="timing-lab-reset" type="button">Reset</button>
+        <button class="timing-lab-apply" type="button">Apply & Reload</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(lab);
+
+  const toggle = lab.querySelector('.timing-lab-toggle');
+  const panel = lab.querySelector('.timing-lab-panel');
+  const close = lab.querySelector('.timing-lab-close');
+  const input = lab.querySelector('#timingLabOffset');
+
+  function setOpen(open) {
+    lab.classList.toggle('open', open);
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) input.focus();
+  }
+
+  function updateDraft(value) {
+    input.value = clampMasterTimingOffset(value).toFixed(2);
+  }
+
+  toggle.addEventListener('click', () => setOpen(!lab.classList.contains('open')));
+  close.addEventListener('click', () => setOpen(false));
+  lab.querySelectorAll('[data-timing-delta]').forEach(button => {
+    button.addEventListener('click', () => {
+      updateDraft((Number(input.value) || 0) + Number(button.dataset.timingDelta));
+    });
+  });
+  lab.querySelector('.timing-lab-apply').addEventListener('click', () => {
+    MASTER_TIMING_OFFSET = saveMasterTimingOffset(input.value);
+    window.location.reload();
+  });
+  lab.querySelector('.timing-lab-reset').addEventListener('click', () => {
+    MASTER_TIMING_OFFSET = saveMasterTimingOffset(0);
+    window.location.reload();
+  });
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      MASTER_TIMING_OFFSET = saveMasterTimingOffset(input.value);
+      window.location.reload();
+    } else if (event.key === 'Escape') {
+      setOpen(false);
+    }
+  });
+}
 
 function initSyncTestingControls() {
   const panel = document.querySelector('.sync-tools');
@@ -381,6 +494,7 @@ function initSyncTestingControls() {
 }
 
 initSyncTestingControls();
+initTimingLab();
 
 
 let lastShownSectionIdx = -1;
@@ -567,7 +681,10 @@ function renderTimelineMarkers() {
     
     const marker = document.createElement('div');
     marker.className = 'scrub-marker';
-    const pct = ((group.actualStartTime ?? group.triggerTime) / dur) * 100;
+    const markerTime = Math.max(0, Math.min(dur,
+      (group.actualStartTime ?? group.triggerTime) + MASTER_TIMING_OFFSET
+    ));
+    const pct = (markerTime / dur) * 100;
     marker.style.left = `${pct}%`;
     
     // Insert before scrub-fill so it's behind the progress
@@ -682,7 +799,7 @@ function updateSubtitles(t) {
     return;
   }
   // Nudge subtitle lookup slightly later so lines do not feel ahead of the audio.
-  const subT = Math.max(0, t - SUBTITLE_SYNC_DELAY);
+  const subT = Math.max(0, t - SUBTITLE_SYNC_DELAY - MASTER_TIMING_OFFSET);
   let currentIdx = -1;
   for (let i = 0; i < subtitles.length; i++) {
     if (subT >= subtitles[i].start) currentIdx = i;
@@ -743,8 +860,9 @@ function rewind10() {
 
   // Allow the section transition for the landing point to replay.
   let targetIdx = -1;
+  const targetTimelineT = Math.max(0, target - MASTER_TIMING_OFFSET);
   for (let i = 0; i < VB.groups.length; i++) {
-    if (target >= VB.groups[i].triggerTime) targetIdx = i;
+    if (targetTimelineT >= VB.groups[i].triggerTime) targetIdx = i;
     else break;
   }
   if (targetIdx < lastShownSectionIdx) {
@@ -893,8 +1011,9 @@ function seekToPosition(clientX) {
   // Reset lastShownSectionIdx if seeking backward
   // This allows transitions to replay when rewatching sections
   let targetIdx = -1;
+  const targetTimelineT = Math.max(0, targetT - MASTER_TIMING_OFFSET);
   for(let i=0; i<VB.groups.length; i++){
-    if(targetT >= VB.groups[i].triggerTime){
+    if(targetTimelineT >= VB.groups[i].triggerTime){
       targetIdx = i;
     } else {
       break;
@@ -972,7 +1091,7 @@ function updateVideoCallouts(t) {
     return;
   }
   // Nudge callout timing slightly later to better match the revised edit.
-  const callT = Math.max(0, t - CALLOUT_SYNC_DELAY);
+  const callT = Math.max(0, t - CALLOUT_SYNC_DELAY - MASTER_TIMING_OFFSET);
   let activeIdx = -1;
   for (let i = 0; i < CALLOUTS.length; i++) {
     if (callT >= CALLOUTS[i].start && callT <= CALLOUTS[i].end) {
@@ -1038,9 +1157,10 @@ function onT(t){
 }
 
 function updateDisplay(t){
+  const timelineT = Math.max(0, t - MASTER_TIMING_OFFSET);
   let activeIdx = -1;
   for(let i=0; i<VB.groups.length; i++){
-    if(t >= VB.groups[i].triggerTime){
+    if(timelineT >= VB.groups[i].triggerTime){
       activeIdx = i;
     } else {
       break;
@@ -1083,8 +1203,10 @@ function renderGroups(){
   if(!g) return;
   
   // Calculate end time using actual section starts for display, not early card trigger time
-  const startTime = g.actualStartTime ?? g.triggerTime;
-  const endTime = idx < VB.groups.length - 1 ? (VB.groups[idx + 1].actualStartTime ?? VB.groups[idx + 1].triggerTime) : dur;
+  const startTime = Math.max(0, (g.actualStartTime ?? g.triggerTime) + MASTER_TIMING_OFFSET);
+  const endTime = idx < VB.groups.length - 1
+    ? Math.max(startTime, (VB.groups[idx + 1].actualStartTime ?? VB.groups[idx + 1].triggerTime) + MASTER_TIMING_OFFSET)
+    : dur;
   
   const startMin = Math.floor(startTime/60);
   const startSec = Math.floor(startTime%60).toString().padStart(2,'0');
