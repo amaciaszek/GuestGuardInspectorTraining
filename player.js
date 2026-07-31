@@ -99,6 +99,11 @@ function ggLog(tag) {
 function ggDiagnose() {
   const url = video.currentSrc || (video.querySelector('source') && video.querySelector('source').src);
   if (!url) return;
+  const mediaUrl = new URL(url, location.href);
+  if (mediaUrl.origin !== location.origin) {
+    console.log('[GG load] Cross-origin media is playing normally; skipping the optional HEAD size diagnostic.');
+    return;
+  }
   fetch(url, { method: 'HEAD' }).then(function (r) {
     const len = r.headers.get('content-length');
     if (len) ggHeadBytes = parseInt(len, 10);
@@ -303,7 +308,10 @@ function replayClip() {
 
 // --- Shared play/pause toggle (used by button, video click, and spacebar) ---
 function togglePlay() {
-  if (document.body.classList.contains('title-card-active')) return; // card self-advances
+  // Before first play, title-card-active only hides lists that would otherwise
+  // flash behind the armed opening card. It is not an active/self-advancing card
+  // yet, so the first click must still be allowed to start the video.
+  if (document.body.classList.contains('title-card-active') && !introCardArmed) return;
   if (video.ended) { replayClip(); return; }
   if (!prepared) { beginPlayback(); return; }
   if (video.paused) { video.play(); playBtn.textContent = '❚❚'; }
