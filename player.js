@@ -172,16 +172,36 @@ function whenReadyToPlay(cb) {
   const failsafe = setTimeout(finish, 15000);
 }
 
-// Smooth (per-frame) fade-to-black over the final 2 seconds of a clip.
+// Fade only after the final spoken caption has finished. The old fixed
+// two-second fade could begin while the presenter was still talking.
+const END_FADE_MAX_SECONDS = 0.75;
+const END_FADE_AFTER_CAPTION_SECONDS = 0.12;
+
+function getEndFadeOpacity(t, d) {
+  if (!Number.isFinite(t) || !Number.isFinite(d) || d <= 0 || t < 0 || t > d) {
+    return 0;
+  }
+
+  const fallbackStart = Math.max(0, d - END_FADE_MAX_SECONDS);
+  const lastCue = subtitles.length > 0 ? subtitles[subtitles.length - 1] : null;
+  const captionSafeStart = lastCue && Number.isFinite(lastCue.end)
+    ? lastCue.end + SUBTITLE_SYNC_DELAY + MASTER_TIMING_OFFSET + END_FADE_AFTER_CAPTION_SECONDS
+    : fallbackStart;
+  const fadeStart = Math.min(d, Math.max(fallbackStart, captionSafeStart));
+  const fadeDuration = d - fadeStart;
+
+  if (t < fadeStart) return 0;
+  if (fadeDuration <= 0) return 1;
+  return Math.min(1, Math.max(0, (t - fadeStart) / fadeDuration));
+}
+
+// Smooth the fade per frame so it does not depend on timeupdate frequency.
 let fadeRAF = null;
 function fadeFrame() {
   if (vidFadeBlack && video.style.display !== 'none') {
     const d = (Number.isFinite(video.duration) && video.duration > 0) ? video.duration : dur;
     if (Number.isFinite(d) && d > 0) {
-      const remaining = d - video.currentTime;
-      vidFadeBlack.style.opacity = (remaining <= 2 && remaining >= 0)
-        ? String(Math.min(1, (2 - remaining) / 2))
-        : '0';
+      vidFadeBlack.style.opacity = String(getEndFadeOpacity(video.currentTime, d));
     }
   }
   fadeRAF = requestAnimationFrame(fadeFrame);
@@ -245,12 +265,7 @@ function applyEndFade(t) {
   if (video.style.display === 'none') { vidFadeBlack.style.opacity = '0'; return; }
   const d = (Number.isFinite(video.duration) && video.duration > 0) ? video.duration : dur;
   if (!Number.isFinite(d) || d <= 0) return;
-  const remaining = d - t;
-  if (remaining <= 2 && remaining >= 0) {
-    vidFadeBlack.style.opacity = String(Math.min(1, (2 - remaining) / 2));
-  } else {
-    vidFadeBlack.style.opacity = '0';
-  }
+  vidFadeBlack.style.opacity = String(getEndFadeOpacity(t, d));
 }
 
 // --- End-of-clip "Up Next" card -------------------------------------------
@@ -351,8 +366,9 @@ let currentCalloutIdx = -1;
 // Descript's external VTT timestamps match the subtitle track embedded in the MP4
 // exactly, so captions start from a neutral baseline. The Timing Lab remains
 // available for deliberate per-browser experiments.
-// Set SHOW_SYNC_TOOLS to true to bring the testing controls back.
+// Set either flag to true to bring its testing controls back.
 const SHOW_SYNC_TOOLS = false;
+const SHOW_TIMING_LAB = false;
 const SUBTITLE_DEFAULT = 0;
 const CALLOUT_DEFAULT = (GG_PLAYER.calloutDelay ?? 0);
 // The old independent offsets are intentionally fixed at their chapter defaults.
@@ -385,7 +401,8 @@ function saveMasterTimingOffset(value) {
   return offset;
 }
 
-let MASTER_TIMING_OFFSET = readMasterTimingOffset();
+// A hidden Timing Lab must not leave an old experimental browser offset active.
+let MASTER_TIMING_OFFSET = SHOW_TIMING_LAB ? readMasterTimingOffset() : 0;
 
 function formatMasterTimingOffset(value) {
   const normalized = Math.abs(value) < 0.0001 ? 0 : value;
@@ -502,7 +519,7 @@ function initSyncTestingControls() {
 }
 
 initSyncTestingControls();
-initTimingLab();
+if (SHOW_TIMING_LAB) initTimingLab();
 
 
 let lastShownSectionIdx = -1;
@@ -566,6 +583,8 @@ function clearBulletsAndListsForTitleCard() {
   // Clear/disable all list-style overlays before the title card appears.
   // The new section's key takeaways are rendered behind the title card and revealed after it fades.
   document.body.classList.add('title-card-active');
+  const subsEl = document.getElementById('subsText');
+  if (subsEl) subsEl.textContent = '—';
   currentCalloutIdx = -1;
   videoCallout.classList.remove('show');
   videoCallout.setAttribute('aria-hidden', 'true');
@@ -881,7 +900,8 @@ function updateSubtitles(t) {
 
   const currentSub = currentIdx >= 0 ? subtitles[currentIdx] : null;
 
-  if(currentSub) {
+  // Never hold an expired cue through a silence or across a title card.
+  if(currentSub && subT >= currentSub.start && subT < currentSub.end) {
     subsEl.textContent = currentSub.text;
   } else {
     subsEl.textContent = '—';

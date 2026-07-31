@@ -567,6 +567,8 @@ body.light-mode .vid-ph-stat-val {
   border-bottom: 1px solid var(--border);
   user-select: none;
   overflow: visible;
+  /* Keep the raised markers visible, but clip the playhead at the two ends. */
+  clip-path: inset(-12px 0 -12px 0);
   z-index: 20;
   flex: 0 0 14px;
 }
