@@ -338,7 +338,7 @@ function normalizeCalloutsForTitleCards(callouts) {
     return adjusted;
   });
 }
-const CALLOUTS = normalizeCalloutsForTitleCards(GG_PLAYER.callouts);
+let CALLOUTS = normalizeCalloutsForTitleCards(GG_PLAYER.callouts);
 let currentCalloutIdx = -1;
 // Descript's external VTT timestamps match the subtitle track embedded in the MP4
 // exactly, so captions start from a neutral baseline. The Timing Lab remains
@@ -705,6 +705,7 @@ async function loadSubtitlesFromVTT() {
     const vttText = await response.text();
     subtitles = parseVTT(vttText);
     if (subtitles.length === 0) throw new Error('No cues parsed from VTT');
+    alignTitleCardTriggersToCaptionPauses();
     updateSubtitles(video.currentTime || 0);
   } catch (err) {
     console.warn(`Could not load ${VTT_SRC}:`, err);
@@ -721,7 +722,10 @@ async function loadSubtitlesFromVTT() {
           end: cue.endTime,
           text: cue.text.replace(/\n/g, ' ')
         }));
-        if (subtitles.length > 0) updateSubtitles(video.currentTime || 0);
+        if (subtitles.length > 0) {
+          alignTitleCardTriggersToCaptionPauses();
+          updateSubtitles(video.currentTime || 0);
+        }
         else subsEl.textContent = 'Could not load subtitles from hosted VTT';
       }, 300);
     } else {
@@ -788,6 +792,67 @@ function parseVTT(vttText) {
     
     return { start: startTime, end: endTime, text: text };
   }).filter(s => s !== null);
+}
+
+// A manually chosen section time can land a few words into an active caption.
+// Pausing there makes the title card sound as though it interrupted the speaker.
+// Keep triggers already placed in silence, but defer an in-speech trigger to the
+// next caption gap. This uses the same Descript timing that drives the captions,
+// so subtitle timing itself remains untouched.
+const TITLE_CARD_MIN_CAPTION_GAP = 0.25;
+const TITLE_CARD_MAX_DEFER = 6;
+function alignTitleCardTriggersToCaptionPauses() {
+  if (!Array.isArray(subtitles) || subtitles.length === 0) return;
+
+  const adjustments = [];
+  for (let groupIndex = 1; groupIndex < VB.groups.length; groupIndex++) {
+    const group = VB.groups[groupIndex];
+    if (!Number.isFinite(group.configuredTriggerTime)) {
+      group.configuredTriggerTime = group.triggerTime;
+    }
+
+    const configuredTime = group.configuredTriggerTime;
+    group.triggerTime = configuredTime;
+    const containingCueIndex = subtitles.findIndex(cue =>
+      configuredTime >= cue.start && configuredTime < cue.end
+    );
+
+    // A trigger already in a real caption gap is safe and stays exactly where it is.
+    if (containingCueIndex < 0) continue;
+
+    let safeTime = null;
+    for (let cueIndex = containingCueIndex; cueIndex < subtitles.length - 1; cueIndex++) {
+      const cue = subtitles[cueIndex];
+      if ((cue.end - configuredTime) > TITLE_CARD_MAX_DEFER) break;
+      const nextCue = subtitles[cueIndex + 1];
+      if ((nextCue.start - cue.end) >= TITLE_CARD_MIN_CAPTION_GAP) {
+        safeTime = cue.end;
+        break;
+      }
+    }
+
+    // Very dense captions may not expose a full pause within six seconds. A cue
+    // boundary is still safer than cutting through the middle of the active cue.
+    if (!Number.isFinite(safeTime)) safeTime = subtitles[containingCueIndex].end;
+    if (safeTime <= configuredTime) continue;
+
+    group.triggerTime = safeTime;
+    adjustments.push({
+      section: group.name,
+      configuredTime,
+      safeTime,
+      deferredBy: Number((safeTime - configuredTime).toFixed(3))
+    });
+  }
+
+  // The title-card hard rule depends on section triggers, so rebuild callout
+  // boundaries after the safe card times have been calculated.
+  CALLOUTS = normalizeCalloutsForTitleCards(GG_PLAYER.callouts);
+  if (adjustments.length > 0) {
+    console.groupCollapsed('[GG timing] Title cards aligned to caption pauses');
+    console.table(adjustments);
+    console.groupEnd();
+  }
 }
 
 function updateSubtitles(t) {
