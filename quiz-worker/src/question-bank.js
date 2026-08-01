@@ -130,7 +130,7 @@ export const REAL_QUESTION_BANK = [
   question('q018','workflow','What should an inspector do after viewing the host’s available time slots?',[
     'Select a slot and wait for the report to be completed by the host',
     'Create a new slot without consulting the host’s requested schedule',
-    'Accept one slot so the job becomes active and awaits the report',
+    'Accept one slot so the job becomes active and the report can be filled out',
     'Assign the job to corporate before choosing an inspection time'
   ],2),
   question('q019','workflow','What two purposes do inspection photographs serve?',[
@@ -139,10 +139,10 @@ export const REAL_QUESTION_BANK = [
     'They verify inspector travel and determine geographic job assignments',
     'They establish property ownership and confirm the host’s tax records'
   ],0),
-  question('q020','workflow','How should a photo of a flagged condition be taken?',[
+  question('q020','workflow','How should a photo of a flagged deficiency be taken?',[ 
     'From a distance so the entire room appears in a single image',
-    'Clearly and carefully so the host can understand the condition',
-    'Only after the host has corrected the condition during the visit',
+    'Clearly and carefully so the host can understand the deficiency',
+    'Only after the host has corrected the deficiency during the visit',
     'Without lighting so the image reflects the room’s normal appearance'
   ],1),
 
@@ -161,7 +161,7 @@ export const REAL_QUESTION_BANK = [
   ],2),
   question('q023','exterior','What minimum clearance is required on each side of a parked car?',[
     'At least eighteen inches on each side',
-    'At least twenty-five inches on each side',
+    'At least twenty-four inches on each side',
     'At least thirty-six inches on each side',
     'At least forty-eight inches on each side'
   ],1),
@@ -215,10 +215,10 @@ export const REAL_QUESTION_BANK = [
     'It is effective against common household fire types',
     'It is approved only for outdoor cooking and pool areas'
   ],2),
-  question('q032','fire','Which extinguisher condition requires remediation in the practice kitchen?',[
-    'The pressure gauge needle was outside the green area',
-    'The pin and tamper seal were no longer intact',
-    'The extinguisher had visible dents along its cylinder',
+  question('q032','fire','Which extinguisher condition requires remediation in the kitchen?',[ 
+    'The pressure gauge needle was inside the green area',
+    'The pin and tamper seal were intact',
+    'The extinguisher had no visible dents or damage',
     'The extinguisher was not mounted at the required height'
   ],3),
   question('q033','fire','About how high above the floor should a home fire extinguisher be mounted?',[
@@ -263,12 +263,18 @@ export const REAL_QUESTION_BANK = [
     'They unlock from inside and have usable, stable hardware',
     'They open toward the nearest room rather than toward the exit'
   ],2),
-  question('q040','fire','Which signage examples address open-flame safety?',[
+  question('q040','fire','Which signage examples address open-flame safety?',[ 
     'No smoking, no candles, and no open fires',
     'No parking, no deliveries, and no unattended vehicles',
     'No pets, no food, and no outdoor footwear',
     'No visitors, no late arrivals, and no early departures'
   ],0),
+  question('q101','fire','What is the ideal placement for a smoke detector?',[ 
+    'In the corner of a room, far away from anything else',
+    'Mounted low or on the floor so it is out of the way',
+    'Within a cabinet or under a table or other furniture',
+    'On the ceiling in a central location, and clearly visible'
+  ],3),
 
   // Electrical, utilities, detectors, and hazards
   question('q041','hazards','Which wiring condition meets the GuestGuard visual standard?',[
@@ -289,12 +295,12 @@ export const REAL_QUESTION_BANK = [
     'The box is hidden from guests behind a permanently locked door',
     'The box includes a separate circuit for every room and appliance'
   ],0),
-  question('q044','hazards','How should the flammable-material item be answered when none is present?',[
-    'Mark the item yes because the room is free of flammable materials',
-    'Leave the item unanswered and explain the condition in final notes',
-    'Mark the item no because no storage system can be evaluated',
-    'Mark the item not applicable because there is nothing to inspect'
-  ],3),
+  question('q044','hazards','Which flammable-material storage practice meets the safety standard?',[ 
+    'Store flammable materials beside a furnace for easy access',
+    'Keep flammable materials in open containers beneath a sink',
+    'Store flammable materials securely and away from ignition sources',
+    'Place flammable materials in guest-accessible rooms with no labeling'
+  ],2),
   question('q045','hazards','What is the purpose of a water-leak or freeze detector?',[
     'It alerts the owner to a burst or frozen pipe condition',
     'It measures background noise near the property’s utilities',
@@ -313,7 +319,7 @@ export const REAL_QUESTION_BANK = [
     'They can heat up and create a fire risk in enclosed spaces',
     'They prevent GFCI testers from identifying unprotected outlets'
   ],2),
-  question('q048','hazards','Where should an inspector look for mold in a kitchen?',[
+  question('q048','hazards','Where should an inspector look for mold or moisture-related growth in a kitchen?',[ 
     'Only on visible wall surfaces above the countertop',
     'Only inside the refrigerator and freezer compartments',
     'Only around windows located next to the cooking area',
@@ -581,13 +587,13 @@ export const REAL_QUESTION_BANK = [
   ],0),
 
   // Overall property and guest experience
-  question('q091','overall','Where should the GuestGuard host and guest handbook be displayed?',[
+  question('q091','overall','Where should the host and guest handbook be displayed?',[ 
     'Inside a locked cabinet reserved for host documents',
     'In a conspicuous location where guests can find it',
     'Beside the breaker box in the maintenance room',
     'Outside the property near the primary parking space'
   ],1),
-  question('q092','overall','Which procedures are covered by the GuestGuard handbook?',[
+  question('q092','overall','Which procedures should be covered by the host handbook?',[ 
     'Booking changes, refund requests, and review disputes',
     'Appliance warranties, utility billing, and repair scheduling',
     'Fire evacuation, power outage, and shelter-in-place guidance',
