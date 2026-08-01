@@ -203,6 +203,7 @@ function fadeFrame() {
     if (Number.isFinite(d) && d > 0) {
       vidFadeBlack.style.opacity = String(getEndFadeOpacity(video.currentTime, d));
     }
+    checkUpcomingTitleCardBoundary(video.currentTime);
   }
   fadeRAF = requestAnimationFrame(fadeFrame);
 }
@@ -821,16 +822,85 @@ function parseVTT(vttText) {
   }).filter(s => s !== null);
 }
 
-// A manually chosen section time can land a few words into an active caption.
-// Pausing there makes the title card sound as though it interrupted the speaker.
-// Keep triggers already placed in silence, but defer an in-speech trigger to the
-// next caption gap. This uses the same Descript timing that drives the captions,
-// so subtitle timing itself remains untouched.
-const TITLE_CARD_MIN_CAPTION_GAP = 0.25;
-const TITLE_CARD_MAX_DEFER = 6;
+// Each title card is tied to the first spoken caption of its section instead of
+// to a brittle timestamp. This prevents a new subject from beginning before its
+// title and also fixes several historical timestamps that pointed at the wrong
+// subject entirely. The card is armed just before the anchor caption, after the
+// preceding caption has finished.
+const TITLE_CARD_LEAD_SECONDS = 0.35;
+const TITLE_CARD_SECTION_ANCHORS = {
+  '1-1': [
+    null,
+    'this training is split into four sections',
+    'next, let me tell you a little bit about who we are',
+    'the short-term rental market has grown enormously',
+    "let's start with the people who ultimately benefit",
+    "what's different between regular home inspections"
+  ],
+  '1-2': [
+    null,
+    'first, the quality of experience'
+  ],
+  '1-3': [
+    null,
+    'photography is an important part of your documentation',
+    'when an issue at a property is found',
+    "let's also talk quickly about timing and job expectations",
+    "let's quickly discuss logistics and how you get on-site",
+    'one of the things that the corporate team looks for',
+    "let's talk about what comes next"
+  ],
+  '2-1': [
+    null,
+    "let's start outside",
+    'regarding outdoor features'
+  ],
+  '2-2': [
+    null,
+    "next, we'll move from the basement or maintenance room to the kitchen"
+  ],
+  '2-3': [
+    null,
+    'for accessibility within the bathroom',
+    "now we're going from the bathroom to the hallway"
+  ],
+  '2-4': [
+    null,
+    'next is accessibility within the bedroom'
+  ],
+  '2-5': [
+    null,
+    'the overall section wraps up the inspection',
+    'for cleanliness, is there a non-smoking policy'
+  ]
+};
+
+function titleCardPartKey() {
+  const source = String(GG_PLAYER.vtt || '');
+  const match = source.match(/module(\d+)_part(\d+)/i);
+  return match ? `${match[1]}-${match[2]}` : '';
+}
+
+function normalizedCaptionText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function titleCardTimeBeforeCue(cueIndex) {
+  const cue = subtitles[cueIndex];
+  if (!cue) return null;
+  const previousCue = cueIndex > 0 ? subtitles[cueIndex - 1] : null;
+  const preferredTime = cue.start - TITLE_CARD_LEAD_SECONDS;
+  return Math.max(0, previousCue ? Math.max(previousCue.end, preferredTime) : preferredTime);
+}
+
 function alignTitleCardTriggersToCaptionPauses() {
   if (!Array.isArray(subtitles) || subtitles.length === 0) return;
 
+  const anchors = TITLE_CARD_SECTION_ANCHORS[titleCardPartKey()] || [];
   const adjustments = [];
   for (let groupIndex = 1; groupIndex < VB.groups.length; groupIndex++) {
     const group = VB.groups[groupIndex];
@@ -840,43 +910,54 @@ function alignTitleCardTriggersToCaptionPauses() {
 
     const configuredTime = group.configuredTriggerTime;
     group.triggerTime = configuredTime;
+    const anchor = normalizedCaptionText(anchors[groupIndex]);
+    const anchorCueIndex = anchor
+      ? subtitles.findIndex(cue => normalizedCaptionText(cue.text).includes(anchor))
+      : -1;
+
+    if (anchorCueIndex >= 0) {
+      const anchorCue = subtitles[anchorCueIndex];
+      const safeTime = titleCardTimeBeforeCue(anchorCueIndex);
+      group.triggerTime = safeTime;
+      group.actualStartTime = anchorCue.start;
+      adjustments.push({
+        section: group.name,
+        anchor: anchors[groupIndex],
+        configuredTime,
+        narrationStarts: anchorCue.start,
+        cardTime: safeTime,
+        shiftedBy: Number((safeTime - configuredTime).toFixed(3))
+      });
+      continue;
+    }
+
+    // Fallback for future sections that do not yet have a semantic anchor:
+    // if their timestamp lands inside speech, move to immediately before that
+    // caption. Never defer to the end of the caption, which is what caused the
+    // original late-card behavior.
     const containingCueIndex = subtitles.findIndex(cue =>
       configuredTime >= cue.start && configuredTime < cue.end
     );
-
-    // A trigger already in a real caption gap is safe and stays exactly where it is.
     if (containingCueIndex < 0) continue;
 
-    let safeTime = null;
-    for (let cueIndex = containingCueIndex; cueIndex < subtitles.length - 1; cueIndex++) {
-      const cue = subtitles[cueIndex];
-      if ((cue.end - configuredTime) > TITLE_CARD_MAX_DEFER) break;
-      const nextCue = subtitles[cueIndex + 1];
-      if ((nextCue.start - cue.end) >= TITLE_CARD_MIN_CAPTION_GAP) {
-        safeTime = cue.end;
-        break;
-      }
-    }
-
-    // Very dense captions may not expose a full pause within six seconds. A cue
-    // boundary is still safer than cutting through the middle of the active cue.
-    if (!Number.isFinite(safeTime)) safeTime = subtitles[containingCueIndex].end;
-    if (safeTime <= configuredTime) continue;
-
+    const safeTime = titleCardTimeBeforeCue(containingCueIndex);
     group.triggerTime = safeTime;
     adjustments.push({
       section: group.name,
+      anchor: '(timestamp fallback)',
       configuredTime,
-      safeTime,
-      deferredBy: Number((safeTime - configuredTime).toFixed(3))
+      narrationStarts: subtitles[containingCueIndex].start,
+      cardTime: safeTime,
+      shiftedBy: Number((safeTime - configuredTime).toFixed(3))
     });
   }
 
   // The title-card hard rule depends on section triggers, so rebuild callout
   // boundaries after the safe card times have been calculated.
   CALLOUTS = normalizeCalloutsForTitleCards(GG_PLAYER.callouts);
+  window.GG_TITLE_CARD_DIAGNOSTICS = adjustments;
   if (adjustments.length > 0) {
-    console.groupCollapsed('[GG timing] Title cards aligned to caption pauses');
+    console.groupCollapsed('[GG timing] Title cards aligned before section narration');
     console.table(adjustments);
     console.groupEnd();
   }
@@ -1100,6 +1181,10 @@ function seekToPosition(clientX) {
   cancelSectionTransition();
   hideEndcard();
   clearHighlights();
+  // Synchronize section state immediately while isSeeking is still true. This
+  // prevents the frame-level title-card watcher from replaying an earlier card
+  // after a large jump on the timeline.
+  onT(targetT);
   
   // Reset lastShownSectionIdx if seeking backward
   // This allows transitions to replay when rewatching sections
@@ -1282,6 +1367,19 @@ function updateDisplay(t){
     
     renderGroups();
   }
+}
+
+// timeupdate can fire only a few times per second, which is enough for the
+// speaker to begin a sentence before the pause is noticed. The existing
+// animation-frame loop calls this lightweight boundary check while playing so
+// a title card is raised within a frame of its caption-aligned trigger.
+function checkUpcomingTitleCardBoundary(t) {
+  if (!isPlaying || isSeeking || currentGroupIdx < 0) return;
+  const nextIndex = currentGroupIdx + 1;
+  if (nextIndex <= 0 || nextIndex >= VB.groups.length) return;
+  if (nextIndex === lastShownSectionIdx) return;
+  const timelineT = Math.max(0, t - MASTER_TIMING_OFFSET);
+  if (timelineT >= VB.groups[nextIndex].triggerTime) updateDisplay(t);
 }
 
 function renderGroups(){
