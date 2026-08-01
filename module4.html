@@ -708,6 +708,7 @@ window.GG_PART_KEY = activeSection.key;
   var scrubMax  = document.getElementById('scrubMax');
   var tDisp     = document.getElementById('tDisp');
   var subsText  = document.getElementById('subsText');
+  var subtitleStrip = subsText.closest('.vid-subs');
   var startOverlay = document.getElementById('startOverlay');
   var endcard   = document.getElementById('endcard');
   var replayBtn = document.getElementById('replayBtn');
@@ -715,6 +716,7 @@ window.GG_PART_KEY = activeSection.key;
 
   var VTT_SRC = activeSection.vtt;
   var SUBTITLE_DELAY = -0.5; // matches the other modules: nudge captions slightly later
+  var SUBTITLE_HOLD_SECONDS = 4;
 
   var started = false;
   var subsUnlocked = false;
@@ -955,15 +957,30 @@ window.GG_PART_KEY = activeSection.key;
   }
 
   function updateSubtitles(t) {
-    if (!subsUnlocked) { subsText.textContent = '—'; return; }
+    if (!subsUnlocked) {
+      subsText.textContent = '—';
+      if (subtitleStrip) subtitleStrip.classList.remove('has-caption');
+      return;
+    }
     var subT = Math.max(0, t - SUBTITLE_DELAY);
     var idx = -1;
     for (var i = 0; i < subtitles.length; i++) {
       if (subT >= subtitles[i].start) idx = i; else break;
     }
     var cur = idx >= 0 ? subtitles[idx] : null;
-    // hide a cue once we are well past its end so the strip clears between lines
-    subsText.textContent = (cur && subT <= cur.end + 0.5) ? cur.text : '—';
+    if (!cur) {
+      subsText.textContent = '—';
+      if (subtitleStrip) subtitleStrip.classList.remove('has-caption');
+      return;
+    }
+    var next = subtitles[idx + 1] || null;
+    var holdUntil = Math.min(
+      cur.end + SUBTITLE_HOLD_SECONDS,
+      next ? next.start : Infinity
+    );
+    var visible = subT < cur.end || subT < holdUntil;
+    subsText.textContent = visible ? cur.text : '';
+    if (subtitleStrip) subtitleStrip.classList.toggle('has-caption', visible);
   }
 
   /* ---- seeking ---------------------------------------------------------- */

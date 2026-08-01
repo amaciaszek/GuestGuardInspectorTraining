@@ -688,6 +688,8 @@ vidBox.addEventListener('mouseenter', showHoverCue);
 
 let titleCardActive = false;
 let subsUnlocked = false;
+const SUBTITLE_HOLD_SECONDS = 4;
+let subtitleResetBoundary = 0;
 
 function showTitleCard(title) {
   if (transitionTimeout) clearTimeout(transitionTimeout);
@@ -700,6 +702,7 @@ function showTitleCard(title) {
   // The card dismisses and plays on its own, so show the "playing" icon now
   // and hold the subtitles until the speaker actually starts.
   playBtn.textContent = '❚❚';
+  subtitleResetBoundary = Math.max(0, video.currentTime);
   subsText.textContent = '—';
   // Dismiss after 3.5s, then wait for the 0.6s CSS fade before playing
   transitionTimeout = setTimeout(() => {
@@ -778,6 +781,7 @@ function openVideo(id) {
   currentVideoMeta = meta;
   maxWatched = 0;
   subtitles = [];
+  subtitleResetBoundary = 0;
   isPlaying = false;
   if (transitionTimeout) { clearTimeout(transitionTimeout); transitionTimeout = null; }
   sectionTransition.classList.remove('show');
@@ -891,8 +895,25 @@ function loadVTT(url) {
 function updateSubtitles(t) {
   // Stay blank until the clip has loaded and the title card has finished.
   if (!subsUnlocked || titleCardActive) { subsText.textContent = '—'; return; }
-  const currentSub = subtitles.find(s => t >= s.start && t <= s.end) || subtitles.filter(s => t >= s.start).pop();
-  subsText.textContent = currentSub ? currentSub.text : '—';
+  let currentIdx = -1;
+  for (let i = 0; i < subtitles.length; i++) {
+    if (t >= subtitles[i].start) currentIdx = i;
+    else break;
+  }
+  const currentSub = currentIdx >= 0 ? subtitles[currentIdx] : null;
+  if (!currentSub) { subsText.textContent = '—'; return; }
+  if (currentSub.start < subtitleResetBoundary) {
+    subsText.textContent = '—';
+    return;
+  }
+  const nextSub = subtitles[currentIdx + 1] || null;
+  const holdUntil = Math.min(
+    currentSub.end + SUBTITLE_HOLD_SECONDS,
+    nextSub ? nextSub.start : Infinity
+  );
+  subsText.textContent = t < currentSub.end || t < holdUntil
+    ? currentSub.text
+    : '';
 }
 function formatTime(seconds) {
   if (!Number.isFinite(seconds)) return '0:00';
@@ -992,6 +1013,7 @@ scrubBar.addEventListener('click', e => {
   const rect = scrubBar.getBoundingClientRect();
   const clickPct = (e.clientX - rect.left) / rect.width;
   const targetT = clickPct * video.duration;
+  subtitleResetBoundary = 0;
   // DEBUG MODE: scrubbing unrestricted — remove this comment and restore maxWatched check for production
   video.currentTime = targetT;
   if (followContainer) followContainer.classList.remove('attention');
@@ -1003,6 +1025,7 @@ if (rewindBtn) {
   rewindBtn.addEventListener('click', e => {
     e.stopPropagation();
     if (video.style.display === 'none' || !video.src) return;
+    subtitleResetBoundary = 0;
     video.currentTime = Math.max(0, video.currentTime - 10);
   });
 }

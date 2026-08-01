@@ -11,6 +11,8 @@ let currentGroupIdx = -1;
 let isPlaying = false;
 let isDragging = false;
 let subsUnlocked = false;
+const SUBTITLE_HOLD_SECONDS = 4;
+let subtitleResetBoundary = 0;
 
 const video = document.getElementById('trainingVideo');
 const playBtn = document.getElementById('playBtn');
@@ -313,6 +315,7 @@ function replayClip() {
   lastShownSectionIdx = -1;
   currentGroupIdx = -1;
   currentCalloutIdx = -1;
+  subtitleResetBoundary = 0;
   isSeeking = true;
   video.currentTime = 0;
   maxWatched = 0;
@@ -584,6 +587,10 @@ function clearBulletsAndListsForTitleCard() {
   // Clear/disable all list-style overlays before the title card appears.
   // The new section's key takeaways are rendered behind the title card and revealed after it fades.
   document.body.classList.add('title-card-active');
+  // A title card is a hard caption boundary. Text spoken before this point may
+  // never be restored after the card, even though short gaps normally retain
+  // the preceding subtitle.
+  subtitleResetBoundary = Math.max(0, video.currentTime - MASTER_TIMING_OFFSET);
   const subsEl = document.getElementById('subsText');
   if (subsEl) subsEl.textContent = '—';
   currentCalloutIdx = -1;
@@ -980,13 +987,25 @@ function updateSubtitles(t) {
   }
 
   const currentSub = currentIdx >= 0 ? subtitles[currentIdx] : null;
+  if (!currentSub) { subsEl.textContent = '—'; return; }
 
-  // Never hold an expired cue through a silence or across a title card.
-  if(currentSub && subT >= currentSub.start && subT < currentSub.end) {
-    subsEl.textContent = currentSub.text;
-  } else {
+  // Never resurrect a line from the section before the most recent title card.
+  if (currentSub.start < subtitleResetBoundary) {
     subsEl.textContent = '—';
+    return;
   }
+
+  const nextSub = subtitles[currentIdx + 1] || null;
+  const holdUntil = Math.min(
+    currentSub.end + SUBTITLE_HOLD_SECONDS,
+    nextSub ? nextSub.start : Infinity
+  );
+
+  // Keep the previous line visible across ordinary conversational pauses. A
+  // genuinely long silence clears to an empty strip after four seconds.
+  subsEl.textContent = subT < currentSub.end || subT < holdUntil
+    ? currentSub.text
+    : '';
 }
 
 const courseStep = Number(window.GG_MODULE_ID) === 1 ? 1 : (Number(window.GG_MODULE_ID) === 2 ? 2 : null);
@@ -1025,6 +1044,7 @@ function rewind10() {
   const target = Math.max(0, video.currentTime - 10);
 
   isSeeking = true;
+  subtitleResetBoundary = 0;
   video.currentTime = target;
 
   // Hide any active section title card.
@@ -1175,6 +1195,7 @@ function seekToPosition(clientX) {
   
   // TESTING MODE: Allow seeking anywhere in the video
   isSeeking = true;
+  subtitleResetBoundary = 0;
   video.currentTime = targetT;
   
   // Hide any active transition
