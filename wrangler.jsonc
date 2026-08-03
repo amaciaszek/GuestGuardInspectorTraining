@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "inspector-training",
+  "account_id": "80b79e71262a5823d6536012847fc8fc",
+  "compatibility_date": "2026-08-03",
+  "assets": {
+    "directory": "."
+  }
+}

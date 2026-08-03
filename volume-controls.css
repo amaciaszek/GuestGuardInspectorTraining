@@ -44,3 +44,7 @@ body.light-mode .gg-volume-slider { accent-color: var(--teal); }
   .gg-volume-control { gap: 4px; padding: 0 5px; }
   .gg-volume-slider { width: 62px; }
 }
+@media (max-width: 560px) {
+  .gg-volume-control { border-right: 0; padding-right: 0; }
+  .gg-volume-slider { display: none; }
+}

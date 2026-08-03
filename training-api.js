@@ -56,7 +56,7 @@
   // Route + methods are known; field names are not. Left off until he confirms.
   const POST_STATUS_ON_COMPLETE = false;
 
-  const DEBUG = true;
+  const DEBUG = false;
   const log = (...a) => { if (DEBUG) console.log('[GG-API]', ...a); };
   const warn = (...a) => console.warn('[GG-API]', ...a);
   const err = (...a) => console.error('[GG-API]', ...a);
@@ -340,112 +340,6 @@
       err('Progress POST failed after all retries:', result.error);
       this.emit('gg:syncfailed', { partKey, error: result.error });
       return !BLOCK_ON_SYNC_FAILURE;
-    },
-
-    // Temporary certification-test helper. Unlike normal video progress this
-    // intentionally allows Module 5 to move backward for QA/reset testing.
-    async setTestProgress(partKey, completed) {
-      if (!partKey) return false;
-      const total = Math.max(1, this.totalSections(partKey));
-      this.progress[partKey] = {
-        currentSegment: completed ? total : 0,
-        totalSegments: total,
-        completed: !!completed,
-        lastUpdated: new Date().toISOString(),
-      };
-      this.emit('gg:progressteststate', { partKey, completed: !!completed, progress: this.progress });
-      if (!this.isAuthenticated()) { warn('Test progress changed locally; no authenticated portal session.'); return false; }
-      const payload = { training_progress: { modules: this.nestForServer(), complete_training: this.isAllComplete(), percentCompleted: this.overallPercent(), last_updated: new Date().toISOString() } };
-      const result = await this.fetchWithRetry(async () => {
-        const res = await this.fetchWithAuth(ROUTES.progress, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-        return res.json();
-      }, 'Test progress POST');
-      if (result.success) this.emit('gg:progresssaved', { progress: this.progress, percent: this.overallPercent(), testOverride: true });
-      return result.success;
-    },
-
-    // Temporary QA helper used by the index-page reset button.
-    async resetAllProgress() {
-      const reset = {};
-      Object.keys(window.PART_DURATIONS || {}).forEach(key => {
-        reset[key] = {
-          currentSegment: 0,
-          totalSegments: Math.max(1, this.totalSections(key)),
-          completed: false,
-          lastUpdated: new Date().toISOString(),
-        };
-      });
-      this.progress = reset;
-      this.emit('gg:progressreset', { progress: reset });
-      if (!this.isAuthenticated()) {
-        warn('Progress reset locally; no authenticated portal session.');
-        return true;
-      }
-      const payload = {
-        training_progress: {
-          modules: this.nestForServer(),
-          complete_training: false,
-          percentCompleted: 0,
-          last_updated: new Date().toISOString(),
-        },
-      };
-      const result = await this.fetchWithRetry(async () => {
-        const res = await this.fetchWithAuth(ROUTES.progress, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-        return res.json();
-      }, 'Progress reset POST');
-      if (result.success) this.emit('gg:progresssaved', { progress: reset, percent: 0, testOverride: true });
-      return result.success;
-    },
-
-    // Temporary QA helper: complete required lessons but leave the exam alone.
-    async completeLessonsForTesting() {
-      const lessonKeys = [
-        '1-1', '1-2', '1-3',
-        '2-1', '2-2', '2-3', '2-4', '2-5',
-        '4-1', '4-2', '4-3', '4-4', '4-5', '4-6',
-      ];
-      lessonKeys.forEach(key => {
-        const total = Math.max(1, this.totalSections(key));
-        this.progress[key] = {
-          currentSegment: total,
-          totalSegments: total,
-          completed: true,
-          lastUpdated: new Date().toISOString(),
-        };
-      });
-      this.emit('gg:progresssaved', {
-        progress: this.progress,
-        percent: this.overallPercent(),
-        testOverride: true,
-      });
-      if (!this.isAuthenticated()) {
-        warn('Lesson progress completed locally; no authenticated portal session.');
-        return true;
-      }
-      const payload = {
-        training_progress: {
-          modules: this.nestForServer(),
-          complete_training: this.isAllComplete(),
-          percentCompleted: this.overallPercent(),
-          last_updated: new Date().toISOString(),
-        },
-      };
-      const result = await this.fetchWithRetry(async () => {
-        const res = await this.fetchWithAuth(ROUTES.progress, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-        return res.json();
-      }, 'Lesson test progress POST');
-      return result.success;
     },
 
     // ---------------------------------------------------------------------

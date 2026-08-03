@@ -17,7 +17,7 @@
     var strip = textElement && textElement.closest('.vid-subs');
     if (!strip) return;
     var value = (textElement.textContent || '').trim();
-    strip.classList.toggle('has-caption', !!value && value !== 'â€”' && value !== '-');
+    strip.classList.toggle('has-caption', !!value && value !== '—' && value !== '-');
   }
 
   document.querySelectorAll('.vid-subs-text').forEach(function (textElement) {

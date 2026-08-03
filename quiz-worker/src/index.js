@@ -11,33 +11,26 @@ export default {
 
     const url = new URL(request.url);
     if (request.method === 'POST' && url.pathname === '/attempts/start') {
+      const identity = await authenticatedLearner(request, env, cors);
+      if (identity.response) return identity.response;
       const payload = await readJson(request);
       if (!payload) return json({ error: 'Invalid JSON body' }, 400, cors);
-      return startAttempt(env, payload, cors);
+      return startAttempt(env, payload, identity.learnerId, cors);
     }
     if (request.method === 'POST' && url.pathname === '/attempts/submit') {
+      const identity = await authenticatedLearner(request, env, cors);
+      if (identity.response) return identity.response;
       const payload = await readJson(request);
       if (!payload) return json({ error: 'Invalid JSON body' }, 400, cors);
-      return submitAttempt(env, payload, cors);
-    }
-    if (request.method === 'POST' && url.pathname === '/test/reset') {
-      if (String(env.ALLOW_TEST_CONTROLS) !== 'true') return json({ error: 'Test controls are disabled' }, 403, cors);
-      const payload = await readJson(request);
-      if (!payload || !payload.learnerId || !payload.quizSeed) return json({ error: 'learnerId and quizSeed are required' }, 400, cors);
-      await env.DB.batch([
-        env.DB.prepare('DELETE FROM quiz_attempts WHERE learner_id = ? AND quiz_seed = ?').bind(String(payload.learnerId), String(payload.quizSeed)),
-        env.DB.prepare('DELETE FROM results WHERE user_id = ? AND seed = ?').bind(String(payload.learnerId), String(payload.quizSeed))
-      ]);
-      return json({ reset: true }, 200, cors);
+      return submitAttempt(env, payload, identity.learnerId, cors);
     }
     return json({ error: 'Not found' }, 404, cors);
   }
 };
 
-async function startAttempt(env, payload, cors) {
+async function startAttempt(env, payload, learnerId, cors) {
   const quizSeed = String(payload.quizSeed || '');
-  const learnerId = String(payload.learnerId || '');
-  if (!quizSeed || !learnerId) return json({ error: 'quizSeed and learnerId are required' }, 400, cors);
+  if (!quizSeed) return json({ error: 'quizSeed is required' }, 400, cors);
 
   const quiz = await env.DB.prepare('SELECT seed, title, questions, answer_key, pass_mark FROM quizzes WHERE seed = ?').bind(quizSeed).first();
   if (!quiz) return json({ error: 'Unknown quiz seed' }, 404, cors);
@@ -60,10 +53,17 @@ async function startAttempt(env, payload, cors) {
   const plan = buildPlan(selectedIds, bank, seededRandom(variantSeed + ':options'));
   const id = crypto.randomUUID();
   const now = Date.now();
-  await env.DB.prepare(`INSERT INTO quiz_attempts
+  await env.DB.prepare(`INSERT OR IGNORE INTO quiz_attempts
     (id, quiz_seed, learner_id, attempt_number, variant_seed, question_plan, status, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`)
     .bind(id, quizSeed, learnerId, attemptNumber, variantSeed, JSON.stringify(plan), now, now).run();
+
+  // A second tab may have inserted this attempt number between our history
+  // read and write. The unique index chooses one canonical attempt; every
+  // concurrent caller receives that same attempt instead of a 500 response.
+  const canonical = await env.DB.prepare("SELECT * FROM quiz_attempts WHERE learner_id = ? AND quiz_seed = ? AND status = 'active' ORDER BY attempt_number DESC LIMIT 1").bind(learnerId, quizSeed).first();
+  if (!canonical) return json({ error: 'The attempt changed while it was being created. Please retry.' }, 409, cors);
+  if (canonical.id !== id) return json(attemptResponse(canonical, quiz, MAX_ATTEMPTS), 200, cors);
 
   return json({
     attemptId: id,
@@ -78,11 +78,11 @@ async function startAttempt(env, payload, cors) {
   }, 201, cors);
 }
 
-async function submitAttempt(env, payload, cors) {
+async function submitAttempt(env, payload, learnerId, cors) {
   if (!payload.attemptId || !payload.answers || typeof payload.answers !== 'object' || Array.isArray(payload.answers)) {
     return json({ error: 'attemptId and answers are required' }, 400, cors);
   }
-  const attempt = await env.DB.prepare('SELECT * FROM quiz_attempts WHERE id = ?').bind(String(payload.attemptId)).first();
+  const attempt = await env.DB.prepare('SELECT * FROM quiz_attempts WHERE id = ? AND learner_id = ?').bind(String(payload.attemptId), learnerId).first();
   if (!attempt) return json({ error: 'Unknown attempt' }, 404, cors);
   if (attempt.status !== 'active') return json({ error: 'This attempt was already submitted' }, 409, cors);
   const quiz = await env.DB.prepare('SELECT seed, title, questions, answer_key, pass_mark FROM quizzes WHERE seed = ?').bind(attempt.quiz_seed).first();
@@ -103,15 +103,15 @@ async function submitAttempt(env, payload, cors) {
     if (correct) score += 1;
     else missed.push({ id: item.displayId, number: i + 1, text: bank.byId[item.canonicalId].text, canonicalId: item.canonicalId });
   }
-  const percent = Math.round((score / plan.length) * 100);
-  const passed = percent >= Number(quiz.pass_mark);
+  const rawPercent = (score / plan.length) * 100;
+  const percent = Math.round(rawPercent);
+  const passed = rawPercent >= Number(quiz.pass_mark);
   const now = Date.now();
-  await env.DB.batch([
-    env.DB.prepare(`UPDATE quiz_attempts SET status = 'submitted', score = ?, total = ?, passed = ?, incorrect_ids = ?, answers = ?, submitted_at = ?, updated_at = ? WHERE id = ?`)
-      .bind(score, plan.length, passed ? 1 : 0, JSON.stringify(missed.map((m) => m.canonicalId)), JSON.stringify(answers), now, now, attempt.id),
-    env.DB.prepare('INSERT INTO results (seed, user_id, score, total, passed, answers, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(quiz.seed, attempt.learner_id, score, plan.length, passed ? 1 : 0, JSON.stringify(answers), now)
-  ]);
+  const claimed = await env.DB.prepare(`UPDATE quiz_attempts SET status = 'submitted', score = ?, total = ?, passed = ?, incorrect_ids = ?, answers = ?, submitted_at = ?, updated_at = ? WHERE id = ? AND learner_id = ? AND status = 'active'`)
+    .bind(score, plan.length, passed ? 1 : 0, JSON.stringify(missed.map((m) => m.canonicalId)), JSON.stringify(answers), now, now, attempt.id, learnerId).run();
+  if (!claimed.meta || claimed.meta.changes !== 1) return json({ error: 'This attempt was already submitted' }, 409, cors);
+  await env.DB.prepare('INSERT INTO results (seed, user_id, score, total, passed, answers, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(quiz.seed, learnerId, score, plan.length, passed ? 1 : 0, JSON.stringify(answers), now).run();
 
   return json({
     attemptId: attempt.id,
@@ -270,6 +270,43 @@ function shuffle(values, rng) {
 
 async function readJson(request) { try { return await request.json(); } catch (_) { return null; } }
 
+async function authenticatedLearner(request, env, cors) {
+  const authorization = request.headers.get('Authorization') || '';
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  if (!match || !match[1].trim()) return { response: json({ error: 'Authentication required' }, 401, cors) };
+  const token = match[1].trim();
+  const validationUrl = String(env.AUTH_VALIDATION_URL || 'https://portal.guestguard.com/api/profiles/training-progress/inspector');
+  let validation;
+  try {
+    validation = await fetch(validationUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+      redirect: 'error'
+    });
+  } catch (_) {
+    return { response: json({ error: 'Authentication service unavailable' }, 503, cors) };
+  }
+  if (!validation.ok) return { response: json({ error: 'Invalid or expired authentication' }, 401, cors) };
+  let claims;
+  try { claims = decodeJwtPayload(token); } catch (_) {
+    return { response: json({ error: 'Invalid authentication token' }, 401, cors) };
+  }
+  const subject = claims.sub || claims.user_id || claims.userId || claims.id;
+  if (!subject) return { response: json({ error: 'Authentication token has no stable user identity' }, 401, cors) };
+  const identity = `${claims.iss || 'guestguard'}:${String(subject)}`;
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
+  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return { learnerId: `portal:${hex}` };
+}
+
+function decodeJwtPayload(token) {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new Error('Malformed JWT');
+  const encoded = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+  const padded = encoded + '='.repeat((4 - encoded.length % 4) % 4);
+  return JSON.parse(atob(padded));
+}
+
 function corsHeaders(origin, configured) {
   const allowed = String(configured || '').split(',').map((value) => value.trim()).filter(Boolean);
   const headers = { 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Vary': 'Origin' };
@@ -278,5 +315,11 @@ function corsHeaders(origin, configured) {
 }
 
 function json(body, status, extraHeaders) {
-  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', ...extraHeaders } });
+  return new Response(JSON.stringify(body), { status, headers: {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    ...extraHeaders
+  } });
 }

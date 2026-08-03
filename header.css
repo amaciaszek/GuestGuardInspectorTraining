@@ -9,4 +9,4 @@
 body.light-mode .hdr-tag{background:var(--teal-dim)!important;color:var(--teal)!important;border-color:var(--teal-dim)!important}
 .theme-toggle{flex:0 0 auto;margin-left:0!important}
 @media(max-width:760px){.hdr{padding:0 12px!important;gap:10px!important}.hdr-logo{height:48px!important}.hdr-sep{display:none}.hdr-title{font-size:1.02rem!important}.hdr-back{padding:8px 9px}}
-@media(max-width:560px){.hdr-title{display:none!important}.hdr-tag{padding:5px 8px!important}}
+@media(max-width:560px){.hdr-title{display:none!important}.hdr-tag{padding:5px 8px!important}.theme-toggle{gap:0!important}.theme-toggle .toggle-icon{display:none!important}}

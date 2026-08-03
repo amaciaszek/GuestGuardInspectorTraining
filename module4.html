@@ -644,7 +644,7 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
   </div>
 
   <!-- Shared scrub bar -->
-  <div class="scrub" id="scrubBar">
+  <div class="scrub" id="scrubBar" role="slider" tabindex="0" aria-label="Video position" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
     <div class="scrub-max" id="scrubMax" style="width:0%;"></div>
     <div class="scrub-fill" id="scrubFill" style="width:0%;"></div>
     <div class="scrub-dot" id="scrubDot" style="left:0%;"></div>
@@ -752,7 +752,7 @@ window.GG_PART_KEY = activeSection.key;
   /* ====================== DEBUG INSTRUMENTATION ======================
      Set VERBOSE_DEBUG = false to silence everything below. Open DevTools
      → Console, reload, click to start, and read the [M4 …] lines.        */
-  var VERBOSE_DEBUG = true;
+  var VERBOSE_DEBUG = false;
   var T0 = performance.now();
   function _el() { return ((performance.now() - T0) / 1000).toFixed(2) + 's'; }
   function dbg() {
@@ -915,6 +915,8 @@ window.GG_PART_KEY = activeSection.key;
     scrubFill.style.width = p + '%';
     scrubDot.style.left = p + '%';
     scrubMax.style.width = mp + '%';
+    scrubBar.setAttribute('aria-valuemax', String(Math.max(0, Math.round(d))));
+    scrubBar.setAttribute('aria-valuenow', String(Math.max(0, Math.round(t))));
     tDisp.textContent = fmt(t) + ' / ' + fmt(d);
     updateSubtitles(t);
   }
@@ -994,7 +996,7 @@ window.GG_PART_KEY = activeSection.key;
     var pct = Math.max(0, Math.min(1, (clientX - scrubRect.left) / scrubRect.width));
     var d = masterDur();
     if (!d) return;
-    var t = pct * d;
+    var t = Math.min(pct * d, Math.min(d, maxWatched + 1));
     isSeeking = true;
     master.currentTime = t;
     syncSlave(true);
@@ -1004,6 +1006,17 @@ window.GG_PART_KEY = activeSection.key;
   }
 
   scrubBar.addEventListener('click', function (e) { if (!isDragging) seekTo(e.clientX); });
+  scrubBar.addEventListener('keydown', function (e) {
+    if (['ArrowLeft', 'ArrowRight', 'Home'].indexOf(e.key) === -1) return;
+    e.preventDefault();
+    var d = masterDur();
+    if (!d) return;
+    var requested = e.key === 'Home' ? 0 : master.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
+    var t = Math.max(0, Math.min(requested, Math.min(d, maxWatched + 1)));
+    master.currentTime = t;
+    syncSlave(true);
+    render(t);
+  });
   scrubBar.addEventListener('mousedown', function (e) { isDragging = true; scrubBar.classList.add('dragging'); updateRect(); seekTo(e.clientX); });
   document.addEventListener('mousemove', function (e) { if (isDragging) seekTo(e.clientX); });
   document.addEventListener('mouseup', function () { if (isDragging) { isDragging = false; scrubBar.classList.remove('dragging'); } });

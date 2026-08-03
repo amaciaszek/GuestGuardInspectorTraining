@@ -46,7 +46,7 @@
       maxTime: maxTime,
       duration: duration || prior.duration || 0,
       percent: duration ? Math.min(100, Math.round(maxTime / duration * 100)) : (prior.percent || 0),
-      completed: Boolean(prior.completed || completed || (duration && maxTime / duration >= (CFG.completionThreshold || .9))),
+      completed: Boolean(prior.completed || completed),
       updatedAt: new Date().toISOString()
     });
     saveLocal();
@@ -82,12 +82,15 @@
   function requiredLessonsComplete() {
     return REQUIRED_SECTIONS.every(function (section) { return done(section[0]); });
   }
+  function authenticated() {
+    return Boolean(window.GGTraining && window.GGTraining.isAuthenticated && window.GGTraining.isAuthenticated());
+  }
   function priorChaptersComplete(moduleId, chapter) {
     for (let i = 1; i < chapter; i += 1) if (!done(moduleId + '-' + i)) return false;
     return true;
   }
   function enforcePageAccess() {
-    if (pageModule === 5 && !requiredLessonsComplete()) {
+    if (pageModule === 5 && (!authenticated() || !requiredLessonsComplete())) {
       location.replace('index.html');
       return false;
     }
@@ -124,7 +127,9 @@
         watched += duration * window.partPercent(key, Number(p.currentSection)) / 100;
       }
     });
-    return total ? Math.min(100, Math.round(watched / total * 100)) : 0;
+    if (!total) return 0;
+    const percent = Math.round(watched / total * 100);
+    return Object.keys(durations).every(done) ? 100 : Math.min(99, percent);
   }
   function render() {
     document.querySelectorAll('.gg-progress-shell').forEach(function(n){n.remove();});
@@ -181,7 +186,7 @@
       const expected={1:3,2:5,4:6,5:1}[moduleId]||0;
       const completed=keys.filter(done).length;
       const moduleDone=expected>0 && completed>=expected;
-      const examLocked=moduleId===5 && !requiredLessonsComplete();
+      const examLocked=moduleId===5 && (!authenticated() || !requiredLessonsComplete());
       const firstIncomplete=Array.from({length:expected},function(_,index){return index+1;})
         .find(function(chapter){return !done(moduleId+'-'+chapter);});
       if(firstIncomplete && (moduleId===1 || moduleId===2)) {
@@ -199,11 +204,15 @@
       card.setAttribute('aria-disabled',String(examLocked));
       if(examLocked) {
         card.removeAttribute('href');
-        card.title='Complete all lesson chapters to unlock the certification exam';
+        card.title=authenticated()
+          ? 'Complete all lesson chapters to unlock the certification exam'
+          : 'Sign in through the GuestGuard portal to take the certification exam';
         if(!card.querySelector('.module-card-lock')) {
           const lock=document.createElement('span');
           lock.className='module-card-lock';
-          lock.textContent='Locked until all chapters are complete';
+          lock.textContent=authenticated()
+            ? 'Locked until all chapters are complete'
+            : 'Sign in through the GuestGuard portal';
           card.appendChild(lock);
         }
       } else {
@@ -226,7 +235,13 @@
     video.addEventListener('loadedmetadata',function(){ activeKey=keyFor(video); render(); });
     video.addEventListener('timeupdate',function(){ if(Date.now()-lastSavedAt>5000){ lastSavedAt=Date.now(); update(video,false); } });
     video.addEventListener('pause',function(){ update(video,false); sync(keyFor(video),true); });
-    video.addEventListener('ended',function(){ update(video,true); sync(keyFor(video),true); });
+    video.addEventListener('ended',function(){
+      // Authenticated completion is granted only after the portal confirms the
+      // gg:partend save. Unauthenticated local previews may retain local state,
+      // but can never unlock the certification exam.
+      update(video,!authenticated());
+      sync(keyFor(video),true);
+    });
     window.addEventListener('pagehide',function(){ update(video,false); sync(keyFor(video),true); });
   }
   function pullRemote() {
@@ -250,8 +265,10 @@
     Object.keys(progress).forEach(function(key){
       const incoming=progress[key]||{}, local=state[key]||{};
       state[key]=Object.assign({},local,{
-        completed:Boolean(local.completed||incoming.completed),
-        currentSection:Math.max(Number(local.currentSection)||0,Number(incoming.currentSegment)||0),
+        completed:authenticated() ? Boolean(incoming.completed) : Boolean(local.completed||incoming.completed),
+        currentSection:authenticated()
+          ? (Number(incoming.currentSegment)||0)
+          : Math.max(Number(local.currentSection)||0,Number(incoming.currentSegment)||0),
         maxTime:Math.max(
           Number(local.maxTime)||0,
           typeof window.partPercent === 'function'
@@ -268,6 +285,26 @@
     if (pageModule === 3) {
       document.querySelectorAll('.gg-progress-shell,.gg-header-progress,.gg-watch-badge').forEach(function(n){n.remove();});
       return;
+    }
+    // The portal response is authoritative. Hydrate it before enforcing direct
+    // chapter/exam access so a completed learner is not redirected on a new
+    // device merely because localStorage starts empty.
+    if (authenticated() && window.GGTraining.progress) {
+      REQUIRED_SECTIONS.concat([['5-1','Certification exam']]).forEach(function(section){
+        const key=section[0], incoming=window.GGTraining.progress[key]||{};
+        const total=Number(incoming.totalSegments)||Number((window.SECTION_TIMINGS||{})[key]?.durations?.length)||1;
+        state[key]=Object.assign({},state[key]||{}, {
+          completed:Boolean(incoming.completed),
+          currentSection:Number(incoming.currentSegment)||0,
+          maxTime:typeof window.partPercent==='function'
+            ? (Number((window.PART_DURATIONS||{})[key])||0)*window.partPercent(key,Number(incoming.currentSegment)||0)/100
+            : 0,
+          duration:Number((window.PART_DURATIONS||{})[key])||0,
+          updatedAt:incoming.lastUpdated||null,
+          totalSegments:total
+        });
+      });
+      saveLocal();
     }
     if (!enforcePageAccess()) return;
     document.querySelectorAll('video').forEach(bindVideo);
@@ -293,10 +330,12 @@
     saveLocal();
     sync(key, true);
   });
-  document.addEventListener('gg:quizteststate', function (event) {
-    const detail = event.detail || {}, key = detail.itemId || '5-1';
-    state[key] = Object.assign({}, state[key] || {}, { completed: !!detail.completed, percent: detail.completed ? 100 : 0, maxTime: detail.completed ? 1 : 0, duration: 1, updatedAt: new Date().toISOString() });
-    saveLocal();
-  });
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
+  function bootWhenReady() {
+    if (window.GGTraining && !window.GGTraining.ready) {
+      document.addEventListener('gg:ready', boot, { once:true });
+      return;
+    }
+    boot();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootWhenReady); else bootWhenReady();
 }());

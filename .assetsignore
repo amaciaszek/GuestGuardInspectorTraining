@@ -1,14 +1,16 @@
 # Server-side quiz source and answer key must never be public site assets.
-quiz-worker/
+quiz-worker
 
 # Local development and repository metadata.
-**/node_modules/
-**/.wrangler/
-.codex-tmp/
-.git/
+**/node_modules
+**/.wrangler
+.codex-tmp
+.git
 .gitignore
-.agents/
-.codex/
+.assetsignore
+wrangler.jsonc
+.agents
+.codex
 
 # Internal question-development source material.
 possible questions.pdf

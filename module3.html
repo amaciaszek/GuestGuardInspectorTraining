@@ -384,7 +384,7 @@ body.light-mode .video-notice strong { color: var(--teal); }
         </div>
         <div class="vid-subs"><div class="vid-subs-text" id="subsText">—</div></div>
         <div class="video-notice" id="videoNotice"><strong>Please note:</strong> The inspection rubric is updated periodically, so the version currently shown in the platform may differ from the version demonstrated in this video.</div>
-        <div class="scrub" id="scrubBar"><div class="scrub-fill" id="scrubFill"></div><div class="scrub-dot" id="scrubDot"></div></div>
+        <div class="scrub" id="scrubBar" role="slider" tabindex="0" aria-label="Video position" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><div class="scrub-fill" id="scrubFill"></div><div class="scrub-dot" id="scrubDot"></div></div>
         <div class="vid-controls">
           <button class="vid-play-btn" id="playBtn" aria-label="Play/Pause">▶</button>
           <button class="vid-rewind-btn" id="rewindBtn" aria-label="Rewind 10 seconds" title="Rewind 10 seconds">
@@ -746,7 +746,8 @@ function openFollowWindow(url) {
   const h = Math.min(800, screen.height - 80);
   const left = Math.round((screen.width - w) / 2);
   const top = Math.round((screen.height - h) / 2);
-  window.open(url, 'guestguard_followalong', `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+  const followWindow = window.open(url, 'guestguard_followalong', `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes,noopener`);
+  if (followWindow) followWindow.opener = null;
 }
 
 function renderFollowLinks(meta) {
@@ -950,10 +951,14 @@ vidBox.addEventListener('click', e => {
     showHoverCue();
   }
 });
-video.addEventListener('loadedmetadata', () => { totalTimeEl.textContent = formatTime(video.duration); });
+video.addEventListener('loadedmetadata', () => {
+  totalTimeEl.textContent = formatTime(video.duration);
+  scrubBar.setAttribute('aria-valuemax', String(Math.max(0, Math.round(video.duration))));
+});
 video.addEventListener('timeupdate', () => {
   const t = video.currentTime;
   if (t > maxWatched) maxWatched = t;
+  scrubBar.setAttribute('aria-valuenow', String(Math.max(0, Math.round(t))));
   updateProgress(t, video.duration);
   updateSubtitles(t);
   applyEndFade();
@@ -1012,12 +1017,19 @@ document.addEventListener('keydown', (e) => {
 scrubBar.addEventListener('click', e => {
   const rect = scrubBar.getBoundingClientRect();
   const clickPct = (e.clientX - rect.left) / rect.width;
-  const targetT = clickPct * video.duration;
+  const targetT = Math.min(clickPct * video.duration, Math.min(video.duration, maxWatched + 1));
   subtitleResetBoundary = 0;
   // DEBUG MODE: scrubbing unrestricted — remove this comment and restore maxWatched check for production
   video.currentTime = targetT;
   if (followContainer) followContainer.classList.remove('attention');
   if (endBackBtn) endBackBtn.style.display = 'none';
+});
+scrubBar.addEventListener('keydown', e => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key) || !video.duration) return;
+  e.preventDefault();
+  const requested = e.key === 'Home' ? 0 : video.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
+  subtitleResetBoundary = 0;
+  video.currentTime = Math.max(0, Math.min(requested, Math.min(video.duration, maxWatched + 1)));
 });
 // Rewind 10 seconds. Setting currentTime fires timeupdate, which refreshes progress + subtitles.
 const rewindBtn = document.getElementById('rewindBtn');

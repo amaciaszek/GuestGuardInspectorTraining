@@ -5,8 +5,7 @@
   var local = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
   var api = String(local ? cfg.localApiUrl : cfg.apiUrl || '').replace(/\/$/, '');
   var LOG = '[GG Quiz]';
-  var learnerId = localStorage.getItem('gg_quiz_learner_id') || (crypto.randomUUID ? crypto.randomUUID() : 'learner-' + Date.now());
-  localStorage.setItem('gg_quiz_learner_id', learnerId);
+  var DRAFT_PREFIX = 'gg-quiz-draft:';
 
   var form = document.getElementById('quizForm');
   var list = document.getElementById('questionList');
@@ -20,9 +19,6 @@
   var questions = [];
   var attempt = null;
   var attemptFinalized = false;
-  var leaveSubmissionSent = false;
-  var historyGuardArmed = false;
-  var historyExitInProgress = false;
 
   function debug(message, detail) {
     if (detail === undefined) console.info(LOG, message);
@@ -58,7 +54,7 @@
   }
 
   function apiPost(path, body, options) {
-    debug('API request', { path: path, learnerId: learnerId.slice(0, 8) + '…' });
+    debug('API request', { path: path });
     return fetch(api + path, {
       method: 'POST',
       headers: headers(),
@@ -71,6 +67,33 @@
         return data;
       });
     });
+  }
+
+  function draftKey() {
+    return attempt && attempt.attemptId ? DRAFT_PREFIX + attempt.attemptId : null;
+  }
+
+  function saveDraft() {
+    var key = draftKey();
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify(currentAnswers()));
+  }
+
+  function restoreDraft() {
+    var key = draftKey();
+    if (!key) return;
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(key)) || {}; } catch (_) {}
+    Object.keys(saved).forEach(function (questionId) {
+      var selector = 'input[type="radio"][name="' + CSS.escape(questionId) + '"][value="' + CSS.escape(String(saved[questionId])) + '"]';
+      var input = form.querySelector(selector);
+      if (input) input.checked = true;
+    });
+  }
+
+  function clearDraft() {
+    var key = draftKey();
+    if (key) localStorage.removeItem(key);
   }
 
   function updateProgress() {
@@ -87,7 +110,6 @@
     attempt = data;
     questions = data.questions || [];
     attemptFinalized = false;
-    leaveSubmissionSent = false;
     result.className = 'result';
     result.innerHTML = '';
     document.getElementById('quizTitle').textContent = data.title || 'Knowledge Check';
@@ -105,7 +127,7 @@
     status.hidden = true;
     list.hidden = false;
     document.getElementById('quizActions').hidden = false;
-    armHistoryGuard();
+    restoreDraft();
     updateProgress();
     debug(data.resumed ? 'Resumed active attempt' : 'Started seeded attempt', {
       attemptId: data.attemptId,
@@ -144,7 +166,7 @@
     status.textContent = 'Preparing your seeded question set…';
     list.hidden = true;
     document.getElementById('quizActions').hidden = true;
-    apiPost('/attempts/start', { quizSeed: cfg.seed, learnerId: learnerId }).then(function (data) {
+    apiPost('/attempts/start', { quizSeed: cfg.seed }).then(function (data) {
       if (data.complete) showTerminal(data);
       else renderAttempt(data);
     }).catch(function (error) {
@@ -161,38 +183,10 @@
       '</ol><p>The correct answers are intentionally not shown.</p></div>';
   }
 
-  function activeAttempt() {
-    return !!(attempt && attempt.attemptId && !attemptFinalized);
-  }
-
-  function armHistoryGuard() {
-    if (historyGuardArmed) return;
-    history.replaceState({ ggQuizBase: true }, '', location.href);
-    history.pushState({ ggQuizGuard: true }, '', location.href);
-    historyGuardArmed = true;
-    debug('Browser back-button guard armed');
-  }
-
-  function gradeForDeparture() {
-    if (!activeAttempt() || leaveSubmissionSent) return Promise.resolve();
-    leaveSubmissionSent = true;
-    var answers = currentAnswers();
-    debug('Leaving quiz: grading current answers and counting unanswered questions as incorrect', {
-      attemptId: attempt.attemptId,
-      answered: Object.keys(answers).length,
-      unanswered: Math.max(0, questions.length - Object.keys(answers).length)
-    });
-    return apiPost('/attempts/submit', { attemptId: attempt.attemptId, answers: answers }).then(function () {
-      attemptFinalized = true;
-    }).catch(function (error) {
-      leaveSubmissionSent = false;
-      throw error;
-    });
-  }
-
   form.addEventListener('change', function (event) {
     var question = event.target.closest('.question');
     if (question) question.classList.remove('unanswered');
+    saveDraft();
     updateProgress();
   });
 
@@ -223,6 +217,7 @@
     debug('Submitting seeded attempt', { attemptId: attempt.attemptId, answerCount: Object.keys(answers).length });
     apiPost('/attempts/submit', { attemptId: attempt.attemptId, answers: answers }).then(function (data) {
       attemptFinalized = true;
+      clearDraft();
       debug('Attempt graded', {
         score: data.score,
         total: data.total,
@@ -239,7 +234,7 @@
       result.scrollIntoView({ behavior: 'smooth', block: 'center' });
       list.hidden = true;
       document.getElementById('quizActions').hidden = true;
-      if (data.passed) setTrainingState(true);
+      if (data.passed) setTrainingState();
       var retake = document.getElementById('quizRetake');
       if (retake) retake.onclick = startAttempt;
     }).catch(function (error) {
@@ -250,103 +245,19 @@
     });
   });
 
-  document.addEventListener('click', function (event) {
-    var link = event.target.closest('a[href]');
-    if (!link || !activeAttempt() || link.target === '_blank' || link.hasAttribute('download')) return;
-    event.preventDefault();
-    var destination = link.href;
-    if (!confirm('Leaving this quiz will submit and grade it now. Any unanswered questions will be marked incorrect. Do you want to leave?')) return;
-    gradeForDeparture().then(function () {
-      location.href = destination;
-    }).catch(function (error) {
-      showError('The quiz could not be graded, so you have not been taken away from this page. Please try again.', error);
+  function setTrainingState() {
+    if (!window.GGTraining || !window.GGTraining.markPartComplete) return Promise.resolve(false);
+    return window.GGTraining.markPartComplete('5-1').then(function (saved) {
+      if (saved) document.dispatchEvent(new CustomEvent('gg:quizcomplete', { detail: { itemId: '5-1' } }));
+      else showError('Your exam passed, but completion could not be synchronized. Please stay signed in and reload to try again.');
+      return saved;
     });
-  });
-
-  window.addEventListener('popstate', function () {
-    if (!historyGuardArmed || historyExitInProgress) return;
-
-    // Once an attempt has already been graded, transparently skip the extra
-    // same-page history entry created by the guard.
-    if (!activeAttempt()) {
-      historyExitInProgress = true;
-      history.back();
-      return;
-    }
-
-    // Restore the guard entry before asking. This keeps the learner on the quiz
-    // when they cancel the warning and works for Chrome's Back button as well
-    // as mouse back buttons.
-    history.pushState({ ggQuizGuard: true }, '', location.href);
-    if (!confirm('Leaving this quiz will submit and grade it now. Any unanswered questions will be marked incorrect. Do you want to leave?')) {
-      debug('Browser back navigation cancelled; quiz remains active');
-      return;
-    }
-
-    gradeForDeparture().then(function () {
-      debug('Browser back navigation confirmed; attempt graded');
-      historyExitInProgress = true;
-      history.go(-2);
-    }).catch(function (error) {
-      showError('The quiz could not be graded, so you have not been taken away from this page. Please try again.', error);
-    });
-  });
-
-  window.addEventListener('beforeunload', function (event) {
-    if (!activeAttempt()) return;
-    event.preventDefault();
-    event.returnValue = '';
-  });
-
-  window.addEventListener('pagehide', function () {
-    if (!activeAttempt() || leaveSubmissionSent) return;
-    leaveSubmissionSent = true;
-    var answers = currentAnswers();
-    debug('Page closing: sending keep-alive grade request', {
-      answered: Object.keys(answers).length,
-      unanswered: Math.max(0, questions.length - Object.keys(answers).length)
-    });
-    fetch(api + '/attempts/submit', {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({ attemptId: attempt.attemptId, answers: answers }),
-      keepalive: true
-    }).catch(function () {});
-  });
-
-  function setTrainingState(completed) {
-    document.dispatchEvent(new CustomEvent('gg:quizteststate', { detail: { itemId: '5-1', completed: completed } }));
-    if (window.GGTraining && window.GGTraining.setTestProgress) return window.GGTraining.setTestProgress('5-1', completed);
-    if (completed && window.GGTraining && window.GGTraining.markPartComplete) return window.GGTraining.markPartComplete('5-1');
-    return Promise.resolve(false);
   }
-
-  document.getElementById('testMarkComplete').onclick = function () {
-    setTrainingState(true).then(function () { debug('Testing control: marked complete'); });
-  };
-  document.getElementById('testMarkIncomplete').onclick = function () {
-    setTrainingState(false).then(function () { debug('Testing control: marked incomplete'); });
-  };
-  document.getElementById('testReset').onclick = function () {
-    if (!confirm('Reset all quiz attempts and mark Step 4 incomplete for this test learner?')) return;
-    apiPost('/test/reset', { quizSeed: cfg.seed, learnerId: learnerId }).then(function () {
-      attemptFinalized = true;
-      return setTrainingState(false);
-    }).then(function () {
-      form.reset();
-      result.className = 'result';
-      startAttempt();
-      debug('Testing control: quiz and progress reset');
-    }).catch(function (error) {
-      showError(error.message, error);
-    });
-  };
 
   debug('Initializing seeded quiz', {
     apiUrl: api,
     quizSeed: cfg.seed,
-    authenticated: !!token(),
-    learnerId: learnerId.slice(0, 8) + '…'
+    authenticated: !!token()
   });
   startAttempt();
 }());

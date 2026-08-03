@@ -89,8 +89,14 @@ function calculateWeightedPercent(progress) {
     if (p.completed) doneParts += 1;
   }
 
-  if (totalSeconds > 0) return Math.round((doneSeconds / totalSeconds) * 100);
-  if (totalParts   > 0) return Math.round((doneParts   / totalParts)   * 100);
+  if (totalSeconds > 0) {
+    const percent = Math.round((doneSeconds / totalSeconds) * 100);
+    return doneParts === totalParts ? 100 : Math.min(99, percent);
+  }
+  if (totalParts > 0) {
+    const percent = Math.round((doneParts / totalParts) * 100);
+    return doneParts === totalParts ? 100 : Math.min(99, percent);
+  }
   return 0;
 }
 

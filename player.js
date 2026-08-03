@@ -76,7 +76,7 @@ function updateLoadingPercent() {
 // --- Load diagnostics (console) ------------------------------------------
 // Set to false to silence. Logs why a clip is slow: file size, range support,
 // when duration/metadata become known, and how fast the buffer fills.
-const GG_LOAD_DEBUG = true;
+const GG_LOAD_DEBUG = false;
 const ggT0 = performance.now();
 let ggHeadBytes = 0;
 function ggElapsed() { return ((performance.now() - ggT0) / 1000).toFixed(2) + 's'; }
@@ -1191,7 +1191,8 @@ function seekToPosition(clientX) {
   const clickX = clientX - scrubberRect.left;
   const clickPct = Math.max(0, Math.min(1, clickX / scrubberRect.width));
   const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
-  const targetT = clickPct * safeDuration;
+  const requestedT = clickPct * safeDuration;
+  const targetT = Math.min(requestedT, Math.min(safeDuration, maxWatched + 1));
   
   // TESTING MODE: Allow seeking anywhere in the video
   isSeeking = true;
@@ -1235,6 +1236,17 @@ scrubBar.addEventListener('click', (e) => {
   if (!isDragging) {
     seekToPosition(e.clientX);
   }
+});
+
+scrubBar.addEventListener('keydown', (e) => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key)) return;
+  e.preventDefault();
+  const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
+  const requested = e.key === 'Home' ? 0 : video.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
+  const target = Math.max(0, Math.min(requested, Math.min(safeDuration, maxWatched + 1)));
+  subtitleResetBoundary = 0;
+  video.currentTime = target;
+  onT(target);
 });
 
 // Drag to seek
@@ -1344,6 +1356,8 @@ function onT(t){
   document.getElementById('scrubFill').style.width=p+'%';
   document.getElementById('scrubDot').style.left=p+'%';
   document.getElementById('scrubMax').style.width=maxP+'%';
+  scrubBar.setAttribute('aria-valuemax', String(Math.max(0, Math.round(dur))));
+  scrubBar.setAttribute('aria-valuenow', String(Math.max(0, Math.round(t))));
   
   const m=Math.floor(t/60),s=Math.floor(t%60).toString().padStart(2,'0');
   document.getElementById('tDisp').textContent=`${m}:${s}`;

@@ -6,7 +6,7 @@
   "compatibility_date": "2026-07-17",
   "vars": {
     "ALLOWED_ORIGINS": "http://localhost:8000,http://127.0.0.1:8000,https://inspector-training.guestguard.workers.dev",
-    "ALLOW_TEST_CONTROLS": "true"
+    "AUTH_VALIDATION_URL": "https://portal.guestguard.com/api/profiles/training-progress/inspector"
   },
   "d1_databases": [
     {
