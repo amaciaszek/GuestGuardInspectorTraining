@@ -996,7 +996,7 @@ window.GG_PART_KEY = activeSection.key;
     var pct = Math.max(0, Math.min(1, (clientX - scrubRect.left) / scrubRect.width));
     var d = masterDur();
     if (!d) return;
-    var t = Math.min(pct * d, Math.min(d, maxWatched + 1));
+    var t = Math.min(pct * d, Math.min(d, maxWatched));
     isSeeking = true;
     master.currentTime = t;
     syncSlave(true);
@@ -1012,7 +1012,7 @@ window.GG_PART_KEY = activeSection.key;
     var d = masterDur();
     if (!d) return;
     var requested = e.key === 'Home' ? 0 : master.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
-    var t = Math.max(0, Math.min(requested, Math.min(d, maxWatched + 1)));
+    var t = Math.max(0, Math.min(requested, Math.min(d, maxWatched)));
     master.currentTime = t;
     syncSlave(true);
     render(t);
@@ -1049,7 +1049,7 @@ window.GG_PART_KEY = activeSection.key;
   // The master drives the shared timeline.
   master.addEventListener('timeupdate', function () {
     var t = master.currentTime;
-    if (t > maxWatched) maxWatched = t;
+    if (!isSeeking && t > maxWatched) maxWatched = t;
     if (!subsUnlocked && t > 0.3) subsUnlocked = true;
     render(t);
     if (!master.paused && !isSeeking) syncSlave(false);
@@ -1104,10 +1104,10 @@ window.GG_PART_KEY = activeSection.key;
 })();
 </script>
 
-<link rel="stylesheet" href="training-progress.css">
+<link rel="stylesheet" href="training-progress.css?v=auth-warning-1">
 <script src="progress-config.js"></script>
 <script src="training-api.js?v=quiz-test-helper-1"></script>
-<script src="training-progress.js?v=chapter-gates-2" defer></script>
+<script src="training-progress.js?v=auth-warning-1" defer></script>
 <script src="theme.js"></script>
   <script src="volume-controls.js" defer></script>
 </body>

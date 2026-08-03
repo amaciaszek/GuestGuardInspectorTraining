@@ -1086,7 +1086,7 @@ vidBox.addEventListener('click', (e) => {
 
 video.addEventListener('timeupdate', () => {
   fakeT = video.currentTime;
-  if(fakeT > maxWatched) maxWatched = fakeT;
+  if(!isSeeking && fakeT > maxWatched) maxWatched = fakeT;
   onT(fakeT);
 });
 
@@ -1192,7 +1192,7 @@ function seekToPosition(clientX) {
   const clickPct = Math.max(0, Math.min(1, clickX / scrubberRect.width));
   const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
   const requestedT = clickPct * safeDuration;
-  const targetT = Math.min(requestedT, Math.min(safeDuration, maxWatched + 1));
+  const targetT = Math.min(requestedT, Math.min(safeDuration, maxWatched));
   
   // TESTING MODE: Allow seeking anywhere in the video
   isSeeking = true;
@@ -1243,7 +1243,7 @@ scrubBar.addEventListener('keydown', (e) => {
   e.preventDefault();
   const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
   const requested = e.key === 'Home' ? 0 : video.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
-  const target = Math.max(0, Math.min(requested, Math.min(safeDuration, maxWatched + 1)));
+  const target = Math.max(0, Math.min(requested, Math.min(safeDuration, maxWatched)));
   subtitleResetBoundary = 0;
   video.currentTime = target;
   onT(target);

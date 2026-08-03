@@ -85,6 +85,24 @@
   function authenticated() {
     return Boolean(window.GGTraining && window.GGTraining.isAuthenticated && window.GGTraining.isAuthenticated());
   }
+  function renderAuthenticationWarning() {
+    const existing = document.getElementById('gg-auth-warning');
+    if (authenticated()) {
+      if (existing) existing.remove();
+      document.body.classList.remove('gg-has-auth-warning');
+      return;
+    }
+    if (existing) return;
+    const warning = document.createElement('aside');
+    warning.id = 'gg-auth-warning';
+    warning.className = 'gg-auth-warning';
+    warning.setAttribute('role', 'alert');
+    warning.setAttribute('aria-live', 'polite');
+    warning.innerHTML = '<span class="gg-auth-warning-icon" aria-hidden="true">!</span>' +
+      '<span><strong>You are not signed in.</strong> Your training progress is not being tracked or saved. Open this training from your signed-in GuestGuard portal to record progress.</span>';
+    document.body.appendChild(warning);
+    document.body.classList.add('gg-has-auth-warning');
+  }
   function priorChaptersComplete(moduleId, chapter) {
     for (let i = 1; i < chapter; i += 1) if (!done(moduleId + '-' + i)) return false;
     return true;
@@ -282,6 +300,7 @@
     saveLocal();
   }
   function boot(){
+    renderAuthenticationWarning();
     if (pageModule === 3) {
       document.querySelectorAll('.gg-progress-shell,.gg-header-progress,.gg-watch-badge').forEach(function(n){n.remove();});
       return;
@@ -315,6 +334,7 @@
   }
   document.addEventListener('gg:progressloaded', mergeAuthoritative);
   document.addEventListener('gg:progresssaved', mergeAuthoritative);
+  document.addEventListener('gg:ready', renderAuthenticationWarning);
   document.addEventListener('gg:progressreset', function () {
     state = {};
     saveLocal();

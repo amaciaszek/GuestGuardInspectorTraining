@@ -408,11 +408,11 @@ body.light-mode .video-notice strong { color: var(--teal); }
   </div>
 </section>
 
-<link rel="stylesheet" href="training-progress.css">
+<link rel="stylesheet" href="training-progress.css?v=auth-warning-1">
 <script>window.GG_MODULE_ID = 3;</script>
 <script src="progress-config.js"></script>
 <script src="training-api.js?v=quiz-test-helper-1"></script>
-<script src="training-progress.js" defer></script>
+<script src="training-progress.js?v=auth-warning-1" defer></script>
 <script src="theme.js"></script>
 <script>
 const BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module3/';
@@ -957,7 +957,7 @@ video.addEventListener('loadedmetadata', () => {
 });
 video.addEventListener('timeupdate', () => {
   const t = video.currentTime;
-  if (t > maxWatched) maxWatched = t;
+  if (!isSeeking && t > maxWatched) maxWatched = t;
   scrubBar.setAttribute('aria-valuenow', String(Math.max(0, Math.round(t))));
   updateProgress(t, video.duration);
   updateSubtitles(t);
@@ -1017,7 +1017,7 @@ document.addEventListener('keydown', (e) => {
 scrubBar.addEventListener('click', e => {
   const rect = scrubBar.getBoundingClientRect();
   const clickPct = (e.clientX - rect.left) / rect.width;
-  const targetT = Math.min(clickPct * video.duration, Math.min(video.duration, maxWatched + 1));
+  const targetT = Math.min(clickPct * video.duration, Math.min(video.duration, maxWatched));
   subtitleResetBoundary = 0;
   // DEBUG MODE: scrubbing unrestricted — remove this comment and restore maxWatched check for production
   video.currentTime = targetT;
@@ -1029,7 +1029,7 @@ scrubBar.addEventListener('keydown', e => {
   e.preventDefault();
   const requested = e.key === 'Home' ? 0 : video.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
   subtitleResetBoundary = 0;
-  video.currentTime = Math.max(0, Math.min(requested, Math.min(video.duration, maxWatched + 1)));
+  video.currentTime = Math.max(0, Math.min(requested, Math.min(video.duration, maxWatched)));
 });
 // Rewind 10 seconds. Setting currentTime fires timeupdate, which refreshes progress + subtitles.
 const rewindBtn = document.getElementById('rewindBtn');
