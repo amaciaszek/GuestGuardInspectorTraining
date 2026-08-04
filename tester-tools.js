@@ -1,0 +1,134 @@
+(function () {
+  'use strict';
+
+  const KEYS = {
+    eligible: 'gg-tester-eligible-v1',
+    enabled: 'gg-tester-enabled-v1',
+    skip: 'gg-tester-skip-v1',
+    unlock: 'gg-tester-unlock-v1'
+  };
+  const localProgressKey = 'gg-inspector-training-progress-v1';
+  const params = new URLSearchParams(location.search);
+  const localHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  if (params.get('tester') === '1' || localHost) sessionStorage.setItem(KEYS.eligible, '1');
+
+  function flag(key) { return sessionStorage.getItem(key) === '1'; }
+  function setFlag(key, value) {
+    if (value) sessionStorage.setItem(key, '1');
+    else sessionStorage.removeItem(key);
+  }
+  function eligible() { return flag(KEYS.eligible); }
+  function enabled() { return eligible() && flag(KEYS.enabled); }
+  function canSkipVideos() { return enabled() && flag(KEYS.skip); }
+  function canUnlockNavigation() { return enabled() && flag(KEYS.unlock); }
+
+  function addStyles() {
+    if (document.getElementById('gg-tester-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'gg-tester-styles';
+    style.textContent = [
+      '.gg-tester-badge{position:fixed;z-index:10020;right:12px;bottom:12px;padding:8px 11px;border:1px solid #56d6ca;border-radius:5px;background:#102c2b;color:#c9fffa;box-shadow:0 8px 24px rgba(0,0,0,.32);font:700 11px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase}',
+      '.gg-tester-toast{position:fixed;z-index:10030;left:50%;bottom:58px;transform:translateX(-50%);max-width:calc(100vw - 24px);padding:10px 14px;border:1px solid #56d6ca;border-radius:5px;background:#102c2b;color:#eafffd;box-shadow:0 10px 28px rgba(0,0,0,.35);font:600 13px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace}',
+      '.gg-tester-help{position:fixed;z-index:10040;inset:0;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.72)}',
+      '.gg-tester-help[hidden]{display:none}.gg-tester-help-card{width:min(620px,100%);max-height:85vh;overflow:auto;padding:22px;border:1px solid #56d6ca;border-radius:7px;background:#10201f;color:#eff;font:14px/1.5 system-ui,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.55)}',
+      '.gg-tester-help h2{margin:0 0 8px;font-size:20px}.gg-tester-help p{margin:7px 0 14px;color:#bcd5d2}.gg-tester-help dl{display:grid;grid-template-columns:max-content 1fr;gap:8px 14px;margin:0}.gg-tester-help dt{font:700 12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#75e6dc}.gg-tester-help dd{margin:0}.gg-tester-help button{margin-top:18px;padding:8px 12px;border:1px solid #56d6ca;background:#173b38;color:#fff;cursor:pointer}',
+      '@media(max-width:560px){.gg-tester-help dl{grid-template-columns:1fr}.gg-tester-help dd{margin:0 0 8px}.gg-tester-badge{right:8px;bottom:8px}}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  function stateLabel() {
+    const modes = [];
+    if (canSkipVideos()) modes.push('SKIP');
+    if (canUnlockNavigation()) modes.push('UNLOCK');
+    return modes.length ? 'Tester: ' + modes.join(' + ') : 'Tester mode';
+  }
+  function renderBadge() {
+    const old = document.getElementById('gg-tester-badge');
+    if (!enabled()) { if (old) old.remove(); return; }
+    addStyles();
+    const badge = old || document.createElement('div');
+    badge.id = 'gg-tester-badge';
+    badge.className = 'gg-tester-badge';
+    badge.setAttribute('role', 'status');
+    badge.textContent = stateLabel();
+    if (!old) document.body.appendChild(badge);
+  }
+  function toast(message) {
+    addStyles();
+    const old = document.getElementById('gg-tester-toast');
+    if (old) old.remove();
+    const node = document.createElement('div');
+    node.id = 'gg-tester-toast';
+    node.className = 'gg-tester-toast';
+    node.setAttribute('role', 'status');
+    node.textContent = message;
+    document.body.appendChild(node);
+    setTimeout(function () { node.remove(); }, 3200);
+  }
+  function showHelp() {
+    if (!enabled()) return;
+    addStyles();
+    let panel = document.getElementById('gg-tester-help');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'gg-tester-help';
+      panel.className = 'gg-tester-help';
+      panel.innerHTML = '<section class="gg-tester-help-card" role="dialog" aria-modal="true" aria-labelledby="gg-tester-help-title">' +
+        '<h2 id="gg-tester-help-title">Training tester shortcuts</h2>' +
+        '<p>These flags last for this browser session only. Use a test account. Local reset does not erase portal or D1 records.</p>' +
+        '<dl>' +
+        '<dt>Ctrl+Alt+Shift+D</dt><dd>Turn tester mode on or off</dd>' +
+        '<dt>Ctrl+Alt+Shift+S</dt><dd>Toggle unrestricted video seeking</dd>' +
+        '<dt>Ctrl+Alt+Shift+U</dt><dd>Toggle chapter and exam navigation locks</dd>' +
+        '<dt>Ctrl+Alt+Shift+R</dt><dd>Reset browser-local training progress after confirmation</dd>' +
+        '<dt>Ctrl+Alt+Shift+H</dt><dd>Show or hide this shortcut card</dd>' +
+        '</dl><button type="button" id="gg-tester-help-close">Close</button></section>';
+      document.body.appendChild(panel);
+      panel.querySelector('#gg-tester-help-close').addEventListener('click', function () { panel.hidden = true; });
+      return;
+    }
+    panel.hidden = !panel.hidden;
+  }
+  function resetLocalProgress() {
+    if (!enabled()) return;
+    if (!window.confirm('Reset browser-local training progress? This does not delete portal progress, quiz attempts, results, or D1 data.')) return;
+    localStorage.removeItem(localProgressKey);
+    document.dispatchEvent(new CustomEvent('gg:progressreset', { detail: { tester: true, localOnly: true } }));
+    toast('Local training progress reset. D1 and portal records were not changed.');
+    setTimeout(function () { location.reload(); }, 500);
+  }
+  function toggleMaster() {
+    if (!eligible()) return;
+    const next = !enabled();
+    setFlag(KEYS.enabled, next);
+    if (!next) { setFlag(KEYS.skip, false); setFlag(KEYS.unlock, false); }
+    renderBadge();
+    toast(next ? 'Tester mode enabled. Press Ctrl+Alt+Shift+H for shortcuts.' : 'Tester mode disabled.');
+    document.dispatchEvent(new CustomEvent('gg:testermodechange', { detail: { enabled: next } }));
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if (!(event.ctrlKey && event.altKey && event.shiftKey) || event.repeat) return;
+    const key = String(event.key || '').toLowerCase();
+    if (key === 'd') { event.preventDefault(); toggleMaster(); return; }
+    if (!enabled()) return;
+    if (key === 's') {
+      event.preventDefault(); setFlag(KEYS.skip, !canSkipVideos()); renderBadge();
+      toast(canSkipVideos() ? 'Video seeking unlocked.' : 'Video seeking locked.');
+    } else if (key === 'u') {
+      event.preventDefault(); setFlag(KEYS.unlock, !canUnlockNavigation()); renderBadge();
+      toast(canUnlockNavigation() ? 'Navigation locks bypassed for this session.' : 'Navigation locks restored.');
+      document.dispatchEvent(new CustomEvent('gg:testermodechange', { detail: { enabled: true } }));
+    } else if (key === 'r') {
+      event.preventDefault(); resetLocalProgress();
+    } else if (key === 'h') {
+      event.preventDefault(); showHelp();
+    }
+  });
+
+  window.GGTester = { eligible, enabled, canSkipVideos, canUnlockNavigation, showHelp };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderBadge);
+  else renderBadge();
+}());

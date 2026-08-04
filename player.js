@@ -1192,7 +1192,9 @@ function seekToPosition(clientX) {
   const clickPct = Math.max(0, Math.min(1, clickX / scrubberRect.width));
   const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
   const requestedT = clickPct * safeDuration;
-  const targetT = Math.min(requestedT, Math.min(safeDuration, maxWatched));
+  const targetT = window.GGTester && window.GGTester.canSkipVideos()
+    ? requestedT
+    : Math.min(requestedT, Math.min(safeDuration, maxWatched));
   
   // TESTING MODE: Allow seeking anywhere in the video
   isSeeking = true;
@@ -1243,7 +1245,9 @@ scrubBar.addEventListener('keydown', (e) => {
   e.preventDefault();
   const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
   const requested = e.key === 'Home' ? 0 : video.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
-  const target = Math.max(0, Math.min(requested, Math.min(safeDuration, maxWatched)));
+  const target = window.GGTester && window.GGTester.canSkipVideos()
+    ? Math.max(0, Math.min(requested, safeDuration))
+    : Math.max(0, Math.min(requested, Math.min(safeDuration, maxWatched)));
   subtitleResetBoundary = 0;
   video.currentTime = target;
   onT(target);

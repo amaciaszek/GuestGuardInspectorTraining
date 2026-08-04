@@ -996,7 +996,10 @@ window.GG_PART_KEY = activeSection.key;
     var pct = Math.max(0, Math.min(1, (clientX - scrubRect.left) / scrubRect.width));
     var d = masterDur();
     if (!d) return;
-    var t = Math.min(pct * d, Math.min(d, maxWatched));
+    var requested = pct * d;
+    var t = window.GGTester && window.GGTester.canSkipVideos()
+      ? requested
+      : Math.min(requested, Math.min(d, maxWatched));
     isSeeking = true;
     master.currentTime = t;
     syncSlave(true);
@@ -1012,7 +1015,9 @@ window.GG_PART_KEY = activeSection.key;
     var d = masterDur();
     if (!d) return;
     var requested = e.key === 'Home' ? 0 : master.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
-    var t = Math.max(0, Math.min(requested, Math.min(d, maxWatched)));
+    var t = window.GGTester && window.GGTester.canSkipVideos()
+      ? Math.max(0, Math.min(requested, d))
+      : Math.max(0, Math.min(requested, Math.min(d, maxWatched)));
     master.currentTime = t;
     syncSlave(true);
     render(t);
@@ -1106,6 +1111,7 @@ window.GG_PART_KEY = activeSection.key;
 
 <link rel="stylesheet" href="training-progress.css?v=auth-warning-1">
 <script src="progress-config.js"></script>
+<script src="tester-tools.js?v=tester-tools-3"></script>
 <script src="training-api.js?v=quiz-test-helper-1"></script>
 <script src="training-progress.js?v=auth-warning-1" defer></script>
 <script src="theme.js"></script>

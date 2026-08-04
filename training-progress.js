@@ -80,6 +80,7 @@
     ['4-4','Walkthrough: Hallway'],['4-5','Walkthrough: Bathroom'],['4-6','Walkthrough: Bedroom']
   ];
   function requiredLessonsComplete() {
+    if (window.GGTester && window.GGTester.canUnlockNavigation()) return true;
     return REQUIRED_SECTIONS.every(function (section) { return done(section[0]); });
   }
   function authenticated() {
@@ -104,6 +105,7 @@
     document.body.classList.add('gg-has-auth-warning');
   }
   function priorChaptersComplete(moduleId, chapter) {
+    if (window.GGTester && window.GGTester.canUnlockNavigation()) return true;
     for (let i = 1; i < chapter; i += 1) if (!done(moduleId + '-' + i)) return false;
     return true;
   }
@@ -334,6 +336,7 @@
   }
   document.addEventListener('gg:progressloaded', mergeAuthoritative);
   document.addEventListener('gg:progresssaved', mergeAuthoritative);
+  document.addEventListener('gg:testermodechange', function () { render(); enforcePageAccess(); });
   document.addEventListener('gg:ready', renderAuthenticationWarning);
   document.addEventListener('gg:progressreset', function () {
     state = {};

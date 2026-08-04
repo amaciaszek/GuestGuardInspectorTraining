@@ -411,6 +411,7 @@ body.light-mode .video-notice strong { color: var(--teal); }
 <link rel="stylesheet" href="training-progress.css?v=auth-warning-1">
 <script>window.GG_MODULE_ID = 3;</script>
 <script src="progress-config.js"></script>
+<script src="tester-tools.js?v=tester-tools-3"></script>
 <script src="training-api.js?v=quiz-test-helper-1"></script>
 <script src="training-progress.js?v=auth-warning-1" defer></script>
 <script src="theme.js"></script>
@@ -1017,7 +1018,10 @@ document.addEventListener('keydown', (e) => {
 scrubBar.addEventListener('click', e => {
   const rect = scrubBar.getBoundingClientRect();
   const clickPct = (e.clientX - rect.left) / rect.width;
-  const targetT = Math.min(clickPct * video.duration, Math.min(video.duration, maxWatched));
+  const requestedT = clickPct * video.duration;
+  const targetT = window.GGTester && window.GGTester.canSkipVideos()
+    ? requestedT
+    : Math.min(requestedT, Math.min(video.duration, maxWatched));
   subtitleResetBoundary = 0;
   // DEBUG MODE: scrubbing unrestricted — remove this comment and restore maxWatched check for production
   video.currentTime = targetT;
@@ -1029,7 +1033,9 @@ scrubBar.addEventListener('keydown', e => {
   e.preventDefault();
   const requested = e.key === 'Home' ? 0 : video.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
   subtitleResetBoundary = 0;
-  video.currentTime = Math.max(0, Math.min(requested, Math.min(video.duration, maxWatched)));
+  video.currentTime = window.GGTester && window.GGTester.canSkipVideos()
+    ? Math.max(0, Math.min(requested, video.duration))
+    : Math.max(0, Math.min(requested, Math.min(video.duration, maxWatched)));
 });
 // Rewind 10 seconds. Setting currentTime fires timeupdate, which refreshes progress + subtitles.
 const rewindBtn = document.getElementById('rewindBtn');
