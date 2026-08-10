@@ -34,20 +34,21 @@
   // ===== Configuration =====================================================
   // Matches the host portal's shipped config.js. Note this is portal.* — the
   // value that actually went live — not the platform.* URL from the old email.
-  // Temporary integration-proof mode. Authentication, progress, and exam
-  // completion must all use the same portal environment or the test is invalid.
-  const PORTAL_ENV = 'development';
-  const API_BASE = 'https://guestguard-platform-git-dev-trai-82806e-egg-basket-technologies.vercel.app';
+  // Authentication and progress remain on the main portal because it issues
+  // the one-time training token. Only the privileged completion POST is being
+  // tested against Brian's dev API by the server-side quiz Worker.
+  const PORTAL_ENV = 'production-auth-dev-completion';
+  const API_BASE = 'https://portal.guestguard.com';
   window.GG_PORTAL_ENV = PORTAL_ENV;
   window.GG_PORTAL_BASE = API_BASE;
 
   function showDevIntegrationBanner() {
-    if (PORTAL_ENV !== 'development' || document.getElementById('ggDevIntegrationBanner')) return;
+    if (PORTAL_ENV !== 'production-auth-dev-completion' || document.getElementById('ggDevIntegrationBanner')) return;
     const banner = document.createElement('aside');
     banner.id = 'ggDevIntegrationBanner';
     banner.setAttribute('role', 'status');
     banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483647;padding:10px 14px;border:2px solid #f59e0b;border-radius:10px;background:#451a03;color:#fff7ed;font:700 13px/1.35 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4);text-align:center';
-    banner.textContent = 'DEV TEST MODE • Connected to Brian’s Vercel dev portal';
+    banner.textContent = 'DEV COMPLETION TEST • Final status POST → Brian’s dev API';
     document.body.appendChild(banner);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showDevIntegrationBanner, { once: true });
