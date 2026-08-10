@@ -87,7 +87,7 @@
         '<dt>Ctrl+Alt+Shift+D</dt><dd>Turn tester mode on or off</dd>' +
         '<dt>Ctrl+Alt+Shift+S</dt><dd>Toggle unrestricted video seeking</dd>' +
         '<dt>Ctrl+Alt+Shift+U</dt><dd>Toggle chapter and exam navigation locks</dd>' +
-        '<dt>Ctrl+Alt+Shift+R</dt><dd>Reset browser-local training progress after confirmation</dd>' +
+        '<dt>Ctrl+Alt+Shift+R</dt><dd>Reset saved portal training progress after confirmation</dd>' +
         '<dt>Ctrl+Alt+Shift+H</dt><dd>Show or hide this shortcut card</dd>' +
         '</dl><button type="button" id="gg-tester-help-close">Close</button></section>';
       document.body.appendChild(panel);
@@ -96,13 +96,32 @@
     }
     panel.hidden = !panel.hidden;
   }
-  function resetLocalProgress() {
+  async function resetTrainingProgress() {
     if (!enabled()) return;
-    if (!window.confirm('Reset browser-local training progress? This does not delete portal progress, quiz attempts, results, or D1 data.')) return;
+    if (!window.GGTraining || !window.GGTraining.isAuthenticated || !window.GGTraining.isAuthenticated()) {
+      toast('Cannot reset portal progress: re-enter training from the Inspector Portal first.');
+      return;
+    }
+    if (!window.confirm('Reset this test user\u2019s saved inspector training progress in the portal? D1 exam attempts are reset separately.')) return;
+
+    const controls = document.getElementById('gg-tester-controls');
+    const buttons = controls ? controls.querySelectorAll('button') : [];
+    buttons.forEach(function (button) { button.disabled = true; });
+
+    const result = await window.GGTraining.resetTrainingProgress();
+    if (!result.success) {
+      const authMessage = result.status === 401
+        ? 'Portal session rejected. Re-enter training from the Inspector Portal, then try again.'
+        : 'Training reset failed: ' + result.error;
+      toast(authMessage);
+      buttons.forEach(function (button) { button.disabled = false; });
+      return;
+    }
+
     localStorage.removeItem(localProgressKey);
-    document.dispatchEvent(new CustomEvent('gg:progressreset', { detail: { tester: true, localOnly: true } }));
-    toast('Local training progress reset. D1 and portal records were not changed.');
-    setTimeout(function () { location.reload(); }, 500);
+    document.dispatchEvent(new CustomEvent('gg:progressreset', { detail: { tester: true, portalConfirmed: true } }));
+    toast('Portal and browser training progress reset. D1 exam records were not changed.');
+    setTimeout(function () { location.reload(); }, 900);
   }
   async function resetExamProgress() {
     if (!enabled()) return;
@@ -168,7 +187,7 @@
       '<button type="button" id="gg-reset-exam">RESET EXAM ATTEMPTS (D1)</button>' +
       '<button type="button" id="gg-complete-videos">COMPLETE ALL EXCEPT LAST VIDEO</button>';
     document.body.appendChild(controls);
-    controls.querySelector('#gg-reset-training').addEventListener('click', resetLocalProgress);
+    controls.querySelector('#gg-reset-training').addEventListener('click', resetTrainingProgress);
     controls.querySelector('#gg-reset-exam').addEventListener('click', resetExamProgress);
     controls.querySelector('#gg-complete-videos').addEventListener('click', completeAllButLastVideo);
   }
@@ -196,13 +215,13 @@
       toast(canUnlockNavigation() ? 'Navigation locks bypassed for this session.' : 'Navigation locks restored.');
       document.dispatchEvent(new CustomEvent('gg:testermodechange', { detail: { enabled: true } }));
     } else if (key === 'r') {
-      event.preventDefault(); resetLocalProgress();
+      event.preventDefault(); resetTrainingProgress();
     } else if (key === 'h') {
       event.preventDefault(); showHelp();
     }
   });
 
-  window.GGTester = { eligible, enabled, canSkipVideos, canUnlockNavigation, showHelp, resetLocalProgress, resetExamProgress, completeAllButLastVideo };
+  window.GGTester = { eligible, enabled, canSkipVideos, canUnlockNavigation, showHelp, resetTrainingProgress, resetExamProgress, completeAllButLastVideo };
   function renderTesterUi() { renderBadge(); renderControls(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderTesterUi);
   else renderTesterUi();

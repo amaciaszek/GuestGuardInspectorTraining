@@ -298,6 +298,72 @@
       return parts.every(k => this.progress[k] && this.progress[k].completed);
     },
 
+    // Tester-only destructive reset. The portal is authoritative, so deleting
+    // local storage alone is not a reset: the next GET restores the record.
+    // Write an empty record and read it back before clearing the browser copy.
+    async resetTrainingProgress() {
+      if (!this.isAuthenticated()) {
+        return { success: false, status: 401, error: 'Portal session is missing or expired.' };
+      }
+
+      const emptyProgress = {
+        modules: {},
+        complete_training: false,
+        percentCompleted: 0,
+        last_updated: new Date().toISOString(),
+      };
+
+      this.emit('gg:saving', { reset: true });
+
+      try {
+        const resetResponse = await this.fetchWithAuth(ROUTES.progress, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ training_progress: emptyProgress }),
+        });
+        if (!resetResponse.ok) {
+          const detail = await resetResponse.json().catch(() => ({}));
+          return {
+            success: false,
+            status: resetResponse.status,
+            error: detail.error || detail.message || `Portal reset returned HTTP ${resetResponse.status}.`,
+          };
+        }
+
+        const verifyResponse = await this.fetchWithAuth(ROUTES.progress, { method: 'GET' });
+        if (!verifyResponse.ok) {
+          return {
+            success: false,
+            status: verifyResponse.status,
+            error: `Portal reset verification returned HTTP ${verifyResponse.status}.`,
+          };
+        }
+
+        const verified = await verifyResponse.json();
+        const verifiedProgress = this.flattenServerProgress(verified.training_progress);
+        const stillRecorded = Object.values(verifiedProgress).some((part) =>
+          !!part.completed || Number(part.currentSegment || 0) > 0
+        );
+        if (stillRecorded) {
+          return {
+            success: false,
+            status: 409,
+            error: 'The portal returned progress after the reset, so nothing was cleared locally.',
+          };
+        }
+
+        this.progress = verifiedProgress;
+        this.emit('gg:progresssaved', { progress: this.progress, percent: 0, reset: true });
+        return { success: true, status: 200 };
+      } catch (error) {
+        return {
+          success: false,
+          status: this.isAuthenticated() ? null : 401,
+          error: error && error.message ? error.message : 'Portal reset request failed.',
+        };
+      }
+    },
+
     // ---------------------------------------------------------------------
     // Progress — POST
     // ---------------------------------------------------------------------
