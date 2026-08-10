@@ -12,6 +12,7 @@ test('completion sync sends the exact protected portal request', async () => {
   try {
     const result = await syncPortalCompletion({
       TRAINING_API_SECRET: 'server-only-test-secret',
+      VERCEL_PROTECTION_BYPASS: 'server-only-vercel-bypass',
       INSPECTOR_STATUS_URL: 'https://portal.example/api/profiles/inspector-status'
     }, 'valid-user-token');
     assert.deepEqual(result, { success: true, target: 'https://portal.example', status: 200 });
@@ -21,6 +22,7 @@ test('completion sync sends the exact protected portal request', async () => {
     assert.equal(calls[0].options.redirect, 'manual');
     assert.equal(calls[0].options.headers.Authorization, 'Bearer valid-user-token');
     assert.equal(calls[0].options.headers['X-Training-Api-Secret'], 'server-only-test-secret');
+    assert.equal(calls[0].options.headers['x-vercel-protection-bypass'], 'server-only-vercel-bypass');
     assert.deepEqual(JSON.parse(calls[0].options.body), { inspector_training_complete: true });
   } finally {
     globalThis.fetch = originalFetch;

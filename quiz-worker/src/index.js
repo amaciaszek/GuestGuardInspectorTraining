@@ -350,6 +350,14 @@ export async function syncPortalCompletion(env, token) {
   let target = statusUrl;
   try { target = new URL(statusUrl).origin; } catch (_) {}
   let lastStatus = null;
+  const completionHeaders = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+    'X-Training-Api-Secret': secret
+  };
+  const vercelBypass = String(env.VERCEL_PROTECTION_BYPASS || '');
+  if (vercelBypass) completionHeaders['x-vercel-protection-bypass'] = vercelBypass;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       const response = await fetch(statusUrl, {
@@ -358,12 +366,7 @@ export async function syncPortalCompletion(env, token) {
         // Manual mode lets us report the 3xx status without forwarding either
         // credential to a different destination.
         redirect: 'manual',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'X-Training-Api-Secret': secret
-        },
+        headers: completionHeaders,
         body: JSON.stringify({ inspector_training_complete: true })
       });
       lastStatus = response.status;
