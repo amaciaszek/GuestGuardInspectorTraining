@@ -354,7 +354,10 @@ export async function syncPortalCompletion(env, token) {
     try {
       const response = await fetch(statusUrl, {
         method: 'POST',
-        redirect: 'error',
+        // Never follow a redirect with the bearer token and server secret.
+        // Manual mode lets us report the 3xx status without forwarding either
+        // credential to a different destination.
+        redirect: 'manual',
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',

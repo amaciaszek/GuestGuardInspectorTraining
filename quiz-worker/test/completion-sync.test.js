@@ -18,7 +18,7 @@ test('completion sync sends the exact protected portal request', async () => {
     assert.equal(calls.length, 1);
     assert.equal(calls[0].url, 'https://portal.example/api/profiles/inspector-status');
     assert.equal(calls[0].options.method, 'POST');
-    assert.equal(calls[0].options.redirect, 'error');
+    assert.equal(calls[0].options.redirect, 'manual');
     assert.equal(calls[0].options.headers.Authorization, 'Bearer valid-user-token');
     assert.equal(calls[0].options.headers['X-Training-Api-Secret'], 'server-only-test-secret');
     assert.deepEqual(JSON.parse(calls[0].options.body), { inspector_training_complete: true });
