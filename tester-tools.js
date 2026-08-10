@@ -11,7 +11,11 @@
   const params = new URLSearchParams(location.search);
   const localHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-  if (params.get('tester') === '1' || localHost) sessionStorage.setItem(KEYS.eligible, '1');
+  const temporaryVisibleTesterControls = true;
+  if (temporaryVisibleTesterControls || params.get('tester') === '1' || localHost) {
+    sessionStorage.setItem(KEYS.eligible, '1');
+    sessionStorage.setItem(KEYS.enabled, '1');
+  }
 
   function flag(key) { return sessionStorage.getItem(key) === '1'; }
   function setFlag(key, value) {
@@ -33,6 +37,7 @@
       '.gg-tester-help{position:fixed;z-index:10040;inset:0;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.72)}',
       '.gg-tester-help[hidden]{display:none}.gg-tester-help-card{width:min(620px,100%);max-height:85vh;overflow:auto;padding:22px;border:1px solid #56d6ca;border-radius:7px;background:#10201f;color:#eff;font:14px/1.5 system-ui,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.55)}',
       '.gg-tester-help h2{margin:0 0 8px;font-size:20px}.gg-tester-help p{margin:7px 0 14px;color:#bcd5d2}.gg-tester-help dl{display:grid;grid-template-columns:max-content 1fr;gap:8px 14px;margin:0}.gg-tester-help dt{font:700 12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#75e6dc}.gg-tester-help dd{margin:0}.gg-tester-help button{margin-top:18px;padding:8px 12px;border:1px solid #56d6ca;background:#173b38;color:#fff;cursor:pointer}',
+      '.gg-tester-controls{position:fixed;z-index:10025;left:14px;bottom:66px;display:flex;flex-wrap:wrap;gap:12px;padding:14px;border:2px solid #56d6ca;border-radius:10px;background:#10201f;box-shadow:0 14px 36px rgba(0,0,0,.45)}.gg-tester-controls button{min-height:54px;padding:12px 20px;border:2px solid #75e6dc;border-radius:8px;background:#173b38;color:#fff;font:800 14px/1.2 system-ui,sans-serif;cursor:pointer}.gg-tester-controls button:last-child{border-color:#f59e0b;background:#451a03}.gg-tester-controls button:disabled{opacity:.55;cursor:wait}',
       '@media(max-width:560px){.gg-tester-help dl{grid-template-columns:1fr}.gg-tester-help dd{margin:0 0 8px}.gg-tester-badge{right:8px;bottom:8px}}'
     ].join('');
     document.head.appendChild(style);
@@ -99,12 +104,56 @@
     toast('Local training progress reset. D1 and portal records were not changed.');
     setTimeout(function () { location.reload(); }, 500);
   }
+  async function resetExamProgress() {
+    if (!enabled()) return;
+    if (!window.confirm('Reset this test user’s D1 exam attempts and results? This cannot be undone.')) return;
+    if (!window.GGTraining || !window.GGTraining.accessToken) {
+      toast('Cannot reset exam: this browser is not authenticated. Re-enter from the portal.');
+      return;
+    }
+    const controls = document.getElementById('gg-tester-controls');
+    const buttons = controls ? controls.querySelectorAll('button') : [];
+    buttons.forEach(function (button) { button.disabled = true; });
+    try {
+      const response = await fetch('https://guestguard-inspector-quiz-api.guestguard.workers.dev/tester/reset-exam', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + window.GGTraining.accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quizSeed: 'inspector-certification-v1' })
+      });
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      toast('Exam reset: ' + data.deletedAttempts + ' attempt(s) and ' + data.deletedResults + ' result(s) removed.');
+      setTimeout(function () { location.href = 'module5'; }, 900);
+    } catch (error) {
+      toast('Exam reset failed: ' + error.message);
+      buttons.forEach(function (button) { button.disabled = false; });
+    }
+  }
+  function renderControls() {
+    const old = document.getElementById('gg-tester-controls');
+    if (!enabled()) { if (old) old.remove(); return; }
+    addStyles();
+    if (old) return;
+    const controls = document.createElement('section');
+    controls.id = 'gg-tester-controls';
+    controls.className = 'gg-tester-controls';
+    controls.setAttribute('aria-label', 'Tester reset controls');
+    controls.innerHTML = '<button type="button" id="gg-reset-training">RESET TRAINING PROGRESS</button>' +
+      '<button type="button" id="gg-reset-exam">RESET EXAM ATTEMPTS (D1)</button>';
+    document.body.appendChild(controls);
+    controls.querySelector('#gg-reset-training').addEventListener('click', resetLocalProgress);
+    controls.querySelector('#gg-reset-exam').addEventListener('click', resetExamProgress);
+  }
   function toggleMaster() {
     if (!eligible()) return;
     const next = !enabled();
     setFlag(KEYS.enabled, next);
     if (!next) { setFlag(KEYS.skip, false); setFlag(KEYS.unlock, false); }
     renderBadge();
+    renderControls();
     toast(next ? 'Tester mode enabled. Press Ctrl+Alt+Shift+H for shortcuts.' : 'Tester mode disabled.');
     document.dispatchEvent(new CustomEvent('gg:testermodechange', { detail: { enabled: next } }));
   }
@@ -128,7 +177,8 @@
     }
   });
 
-  window.GGTester = { eligible, enabled, canSkipVideos, canUnlockNavigation, showHelp };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderBadge);
-  else renderBadge();
+  window.GGTester = { eligible, enabled, canSkipVideos, canUnlockNavigation, showHelp, resetLocalProgress, resetExamProgress };
+  function renderTesterUi() { renderBadge(); renderControls(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderTesterUi);
+  else renderTesterUi();
 }());

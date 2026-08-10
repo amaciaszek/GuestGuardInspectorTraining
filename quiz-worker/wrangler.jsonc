@@ -7,7 +7,8 @@
   "vars": {
     "ALLOWED_ORIGINS": "http://localhost:8000,http://127.0.0.1:8000,https://inspector-training.guestguard.workers.dev",
     "AUTH_VALIDATION_URL": "https://portal.guestguard.com/api/profiles/training-progress/inspector",
-    "INSPECTOR_STATUS_URL": "https://guestguard-platform-git-dev-trai-82806e-egg-basket-technologies.vercel.app/api/profiles/inspector-status"
+    "INSPECTOR_STATUS_URL": "https://guestguard-platform-git-dev-trai-82806e-egg-basket-technologies.vercel.app/api/profiles/inspector-status",
+    "TESTER_RESETS_ENABLED": "true"
   },
   "d1_databases": [
     {
