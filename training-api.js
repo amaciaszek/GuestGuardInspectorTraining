@@ -51,8 +51,8 @@
     banner.textContent = 'DEV COMPLETION TEST • Final status POST → Brian’s dev API';
     document.body.appendChild(banner);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showDevIntegrationBanner, { once: true });
-  else showDevIntegrationBanner();
+  // The completion page itself displays server-confirmed dev handshake proof.
+  // Do not show a persistent site-wide dev banner.
 
   const ROUTES = {
     // Shared across host + inspector. Do not fork this one.

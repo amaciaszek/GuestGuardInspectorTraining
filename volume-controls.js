@@ -36,7 +36,10 @@
     if (!audioVideo) return;
 
     var savedVolume = Math.max(0, Math.min(1, numberOr(localStorage.getItem(VOLUME_KEY), 0.8)));
-    var savedMuted = localStorage.getItem(MUTED_KEY) === 'true';
+    // Every video page starts audible. A mute choice applies only to the
+    // current page and is not carried into the next training video.
+    var savedMuted = false;
+    localStorage.removeItem(MUTED_KEY);
     if (savedVolume > 0) lastAudibleVolume = savedVolume;
     audioVideo.volume = savedVolume;
     audioVideo.muted = savedMuted;
@@ -83,7 +86,6 @@
         lastAudibleVolume = audioVideo.volume;
         audioVideo.muted = true;
       }
-      localStorage.setItem(MUTED_KEY, String(audioVideo.muted));
       localStorage.setItem(VOLUME_KEY, String(audioVideo.volume));
       render();
     });
@@ -94,7 +96,6 @@
       audioVideo.muted = value === 0;
       if (value > 0) lastAudibleVolume = value;
       localStorage.setItem(VOLUME_KEY, String(value));
-      localStorage.setItem(MUTED_KEY, String(audioVideo.muted));
       render();
     });
 

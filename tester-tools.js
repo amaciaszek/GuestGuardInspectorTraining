@@ -37,7 +37,7 @@
       '.gg-tester-help{position:fixed;z-index:10040;inset:0;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.72)}',
       '.gg-tester-help[hidden]{display:none}.gg-tester-help-card{width:min(620px,100%);max-height:85vh;overflow:auto;padding:22px;border:1px solid #56d6ca;border-radius:7px;background:#10201f;color:#eff;font:14px/1.5 system-ui,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.55)}',
       '.gg-tester-help h2{margin:0 0 8px;font-size:20px}.gg-tester-help p{margin:7px 0 14px;color:#bcd5d2}.gg-tester-help dl{display:grid;grid-template-columns:max-content 1fr;gap:8px 14px;margin:0}.gg-tester-help dt{font:700 12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#75e6dc}.gg-tester-help dd{margin:0}.gg-tester-help button{margin-top:18px;padding:8px 12px;border:1px solid #56d6ca;background:#173b38;color:#fff;cursor:pointer}',
-      '.gg-tester-controls{position:fixed;z-index:10025;left:14px;bottom:66px;display:flex;flex-wrap:wrap;gap:12px;padding:14px;border:2px solid #56d6ca;border-radius:10px;background:#10201f;box-shadow:0 14px 36px rgba(0,0,0,.45)}.gg-tester-controls button{min-height:54px;padding:12px 20px;border:2px solid #75e6dc;border-radius:8px;background:#173b38;color:#fff;font:800 14px/1.2 system-ui,sans-serif;cursor:pointer}.gg-tester-controls button:last-child{border-color:#f59e0b;background:#451a03}.gg-tester-controls button:disabled{opacity:.55;cursor:wait}',
+      '.gg-tester-controls{position:fixed;z-index:10025;left:14px;bottom:14px;display:flex;flex-wrap:wrap;gap:12px;padding:14px;border:2px solid #56d6ca;border-radius:10px;background:#10201f;box-shadow:0 14px 36px rgba(0,0,0,.45)}.gg-tester-controls button{min-height:54px;padding:12px 20px;border:2px solid #75e6dc;border-radius:8px;background:#173b38;color:#fff;font:800 14px/1.2 system-ui,sans-serif;cursor:pointer}.gg-tester-controls button:nth-child(2){border-color:#f59e0b;background:#451a03}.gg-tester-controls button:nth-child(3){border-color:#22c55e;background:#052e16}.gg-tester-controls button:disabled{opacity:.55;cursor:wait}',
       '@media(max-width:560px){.gg-tester-help dl{grid-template-columns:1fr}.gg-tester-help dd{margin:0 0 8px}.gg-tester-badge{right:8px;bottom:8px}}'
     ].join('');
     document.head.appendChild(style);
@@ -132,6 +132,29 @@
       buttons.forEach(function (button) { button.disabled = false; });
     }
   }
+  async function completeAllButLastVideo() {
+    if (!enabled()) return;
+    if (!window.GGTraining || !window.GGTraining.isAuthenticated || !window.GGTraining.isAuthenticated()) {
+      toast('Cannot save progress: re-enter training from the portal first.');
+      return;
+    }
+    if (!window.confirm('Mark every required training video complete except the final Module 4 video?')) return;
+    const controls = document.getElementById('gg-tester-controls');
+    const buttons = controls ? controls.querySelectorAll('button') : [];
+    buttons.forEach(function (button) { button.disabled = true; });
+    const parts = ['1-1','1-2','1-3','2-1','2-2','2-3','2-4','2-5','4-1','4-2','4-3','4-4','4-5'];
+    try {
+      for (const partKey of parts) {
+        const saved = await window.GGTraining.markPartComplete(partKey);
+        if (!saved) throw new Error('progress save failed at ' + partKey);
+      }
+      toast('Progress saved. Only the final Module 4 video remains.');
+      setTimeout(function () { location.href = 'module4?ch=6'; }, 900);
+    } catch (error) {
+      toast('Could not complete setup: ' + error.message);
+      buttons.forEach(function (button) { button.disabled = false; });
+    }
+  }
   function renderControls() {
     const old = document.getElementById('gg-tester-controls');
     if (!enabled()) { if (old) old.remove(); return; }
@@ -142,10 +165,12 @@
     controls.className = 'gg-tester-controls';
     controls.setAttribute('aria-label', 'Tester reset controls');
     controls.innerHTML = '<button type="button" id="gg-reset-training">RESET TRAINING PROGRESS</button>' +
-      '<button type="button" id="gg-reset-exam">RESET EXAM ATTEMPTS (D1)</button>';
+      '<button type="button" id="gg-reset-exam">RESET EXAM ATTEMPTS (D1)</button>' +
+      '<button type="button" id="gg-complete-videos">COMPLETE ALL EXCEPT LAST VIDEO</button>';
     document.body.appendChild(controls);
     controls.querySelector('#gg-reset-training').addEventListener('click', resetLocalProgress);
     controls.querySelector('#gg-reset-exam').addEventListener('click', resetExamProgress);
+    controls.querySelector('#gg-complete-videos').addEventListener('click', completeAllButLastVideo);
   }
   function toggleMaster() {
     if (!eligible()) return;
@@ -177,7 +202,7 @@
     }
   });
 
-  window.GGTester = { eligible, enabled, canSkipVideos, canUnlockNavigation, showHelp, resetLocalProgress, resetExamProgress };
+  window.GGTester = { eligible, enabled, canSkipVideos, canUnlockNavigation, showHelp, resetLocalProgress, resetExamProgress, completeAllButLastVideo };
   function renderTesterUi() { renderBadge(); renderControls(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderTesterUi);
   else renderTesterUi();

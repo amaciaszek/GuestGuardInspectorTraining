@@ -187,6 +187,14 @@
         '<div><strong>Dev API response:</strong> HTTP ' + escapeHtml(String(data.completionStatus || 'success')) + '</div>' +
         '<div class="completion-proof-note">Brian’s dev API accepted the authenticated completion update. Verify inspector_training_complete = true in the dev database.</div></div></div>'
       : '';
+    var devFailure = data.completionSynced === false && data.completionTarget
+      ? '<div class="completion-proof completion-proof-failed" role="alert">' +
+        '<div class="completion-proof-icon" aria-hidden="true">!</div>' +
+        '<div><div class="completion-proof-title">DEV SECRET HANDSHAKE NOT ACCEPTED</div>' +
+        '<div><strong>Target:</strong> ' + escapeHtml(data.completionTarget) + '</div>' +
+        '<div><strong>Dev API result:</strong> ' + (data.completionStatus ? 'HTTP ' + escapeHtml(String(data.completionStatus)) : 'No HTTP response') + '</div>' +
+        '<div class="completion-proof-note">The exam passed, but Brian’s dev API did not accept the protected completion request. Check the dev secret configuration and whether the dev route accepts this authenticated portal user.</div></div></div>'
+      : '';
     result.innerHTML = '<div class="completion-mark" aria-hidden="true">✓</div>' +
       '<div class="eyebrow">CERTIFICATION EXAM COMPLETE</div>' +
       '<h1>' + (data.completionSynced === false ? 'Exam passed - portal update pending' : 'You passed the certification exam') + '</h1>' +
@@ -194,7 +202,7 @@
       '<p>' + (data.completionSynced === false
         ? 'Your passing exam result is safely recorded. We could not confirm the final portal update yet; use the button below to retry before returning.'
         : 'Your result is recorded and your inspector training status has been sent to GuestGuard. Return to the Inspector Portal for your next steps.') + '</p>' +
-      devReceipt +
+      devReceipt + devFailure +
       '<div class="completion-actions">' +
         (data.completionSynced === false ? '<button type="button" class="secondary" id="completionRetry">Retry portal update</button>' : '') +
         '<a class="portal-return" href="' + portalBase + '/inspector-portal">Open Dev Inspector Portal and verify status</a>' +
