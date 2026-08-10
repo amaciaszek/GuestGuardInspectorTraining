@@ -16,6 +16,9 @@ wrangler.jsonc
 possible questions.pdf
 output/
 outputs/
+VIDEO_PIPELINE_HANDOFF.md
 
 # Local validation, caption backups, and generated work files.
 tmp/
+scripts/
+optimized/

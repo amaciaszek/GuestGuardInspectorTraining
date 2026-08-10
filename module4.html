@@ -677,7 +677,8 @@ body.light-mode .endcard-btn { border-color: var(--teal); background: var(--teal
    shorter, and is clamped to the master timeline if it is longer. When the
    final cut makes them equal length, the sync is exact with no extra changes.
    ───────────────────────────────────────────────────────────────────────── */
-var MODULE4_BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module4/';
+var MODULE4_VIDEO_BASE = 'https://pub-063eb51d973f4bffa47a49524c7dc247.r2.dev/module4/';
+var MODULE4_CAPTION_BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module4/';
 var MODULE4_SECTIONS = [
   { n:1, key:'4-1', slug:'propertywide', title:'Property-Wide Inspection', short:'Property Wide' },
   { n:2, key:'4-2', slug:'commonroom', title:'Common Room Inspection', short:'Common Room' },
@@ -686,9 +687,9 @@ var MODULE4_SECTIONS = [
   { n:5, key:'4-5', slug:'bathroom', title:'Bathroom Inspection', short:'Bathroom' },
   { n:6, key:'4-6', slug:'bedroom', title:'Bedroom Inspection', short:'Bedroom' }
 ].map(function (section) {
-  section.bodycam = MODULE4_BASE + section.slug + '.mp4';
-  section.ipad = MODULE4_BASE + section.slug + '_ipad.mp4';
-  section.vtt = MODULE4_BASE + section.slug + '.vtt';
+  section.bodycam = MODULE4_VIDEO_BASE + section.slug + '.mp4';
+  section.ipad = MODULE4_VIDEO_BASE + section.slug + '_ipad.mp4';
+  section.vtt = MODULE4_CAPTION_BASE + section.slug + '.vtt';
   return section;
 });
 var requestedSection = Number(new URLSearchParams(location.search).get('ch')) || 1;
@@ -1109,11 +1110,11 @@ window.GG_PART_KEY = activeSection.key;
 })();
 </script>
 
-<link rel="stylesheet" href="training-progress.css?v=auth-warning-1">
+<link rel="stylesheet" href="training-progress.css?v=launch-fixes-1">
 <script src="progress-config.js"></script>
 <script src="tester-tools.js?v=tester-tools-3"></script>
-<script src="training-api.js?v=quiz-test-helper-1"></script>
-<script src="training-progress.js?v=auth-warning-1" defer></script>
+<script src="training-api.js?v=launch-fixes-1"></script>
+<script src="training-progress.js?v=launch-fixes-1" defer></script>
 <script src="theme.js"></script>
   <script src="volume-controls.js" defer></script>
 </body>

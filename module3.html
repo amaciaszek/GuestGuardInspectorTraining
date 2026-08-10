@@ -408,15 +408,16 @@ body.light-mode .video-notice strong { color: var(--teal); }
   </div>
 </section>
 
-<link rel="stylesheet" href="training-progress.css?v=auth-warning-1">
+<link rel="stylesheet" href="training-progress.css?v=launch-fixes-1">
 <script>window.GG_MODULE_ID = 3;</script>
 <script src="progress-config.js"></script>
 <script src="tester-tools.js?v=tester-tools-3"></script>
-<script src="training-api.js?v=quiz-test-helper-1"></script>
-<script src="training-progress.js?v=auth-warning-1" defer></script>
+<script src="training-api.js?v=launch-fixes-1"></script>
+<script src="training-progress.js?v=launch-fixes-1" defer></script>
 <script src="theme.js"></script>
 <script>
-const BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module3/';
+const VIDEO_BASE = 'https://pub-063eb51d973f4bffa47a49524c7dc247.r2.dev/module3/';
+const CAPTION_BASE = 'https://pub-2e903fa5ea964ab3b77967e7159432bc.r2.dev/inspector-training/module3/';
 const RUBRIC_NOTICE = 'The inspection rubric is updated periodically, so the version currently shown in the platform may differ from the version demonstrated in this video.';
 const videos = [
   { id:'B1',  category:'Orientation',  title:'Intro + Home Page',                         desc:'Start here for the opening overview and a first look at the GuestGuard home page.',           duration:'4 min',  follow:[{ label:'Follow Along: Home Page', url:'https://portal.guestguard.com/' }] },
@@ -670,8 +671,8 @@ function stopFadeLoop() { if (fadeRAF != null) { cancelAnimationFrame(fadeRAF); 
   video.addEventListener('contextmenu', (e) => e.preventDefault());
 })();
 
-function videoSrc(id) { return `${BASE}${id}.mp4`; }
-function vttSrc(id) { return `${BASE}${id}.vtt`; }
+function videoSrc(id) { return `${VIDEO_BASE}${id}.mp4`; }
+function vttSrc(id) { return `${CAPTION_BASE}${id}.vtt`; }
 
 function updateHoverIcon() {
   hoverIcon.textContent = video.paused ? '▶' : '❚❚';
@@ -1019,12 +1020,10 @@ scrubBar.addEventListener('click', e => {
   const rect = scrubBar.getBoundingClientRect();
   const clickPct = (e.clientX - rect.left) / rect.width;
   const requestedT = clickPct * video.duration;
-  const targetT = window.GGTester && window.GGTester.canSkipVideos()
-    ? requestedT
-    : Math.min(requestedT, Math.min(video.duration, maxWatched));
   subtitleResetBoundary = 0;
-  // DEBUG MODE: scrubbing unrestricted — remove this comment and restore maxWatched check for production
-  video.currentTime = targetT;
+  // Module 3 is an optional reference library, not gated certification
+  // content. Learners may move freely in either direction.
+  video.currentTime = Math.max(0, Math.min(requestedT, video.duration));
   if (followContainer) followContainer.classList.remove('attention');
   if (endBackBtn) endBackBtn.style.display = 'none';
 });
@@ -1033,9 +1032,7 @@ scrubBar.addEventListener('keydown', e => {
   e.preventDefault();
   const requested = e.key === 'Home' ? 0 : video.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
   subtitleResetBoundary = 0;
-  video.currentTime = window.GGTester && window.GGTester.canSkipVideos()
-    ? Math.max(0, Math.min(requested, video.duration))
-    : Math.max(0, Math.min(requested, Math.min(video.duration, maxWatched)));
+  video.currentTime = Math.max(0, Math.min(requested, video.duration));
 });
 // Rewind 10 seconds. Setting currentTime fires timeupdate, which refreshes progress + subtitles.
 const rewindBtn = document.getElementById('rewindBtn');

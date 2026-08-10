@@ -79,8 +79,10 @@
   function gate(quiz, opts) {
     opts = opts || {};
     var requireToPass = opts.requireToPass !== false; // default: gated
-    var passingScore  = (typeof quiz.passingScore === 'number') ? quiz.passingScore : 80;
+    var passingScore  = (typeof quiz.passingScore === 'number') ? quiz.passingScore : 75;
     var questions     = quiz.questions || [];
+    var requiredCorrect = Math.ceil(questions.length * passingScore / 100);
+    var requiredLabel = requiredCorrect + ' of ' + questions.length;
     var hasPassed     = false;
 
     var ov = ensureOverlay();
@@ -88,7 +90,7 @@
 
     $('ggqTitle').textContent = opts.chapter || 'Knowledge Check';
     $('ggqSub').innerHTML = (opts.context ? opts.context + ' \u00b7 ' : '') +
-      '<strong>' + questions.length + ' questions</strong> \u00b7 Passing score: <strong>' + passingScore + '%</strong>';
+      '<strong>' + questions.length + ' questions</strong> \u00b7 Passing score: <strong>' + requiredLabel + '</strong>';
 
     // Exit hatch — return to the video without navigating onward.
     $('ggqExit').onclick = function () {
@@ -155,13 +157,11 @@
           if (submitted) return;
           var qi = +b.getAttribute('data-q');
           var oi = +b.getAttribute('data-o');
-          if (ans[qi] !== null) return; // locked once chosen
           ans[qi] = oi;
           var n = questions[qi].options.length;
           for (var i = 0; i < n; i++) {
             var btn = $('ggq-o-' + qi + '-' + i);
             btn.classList.toggle('sel', i === oi);
-            btn.disabled = true;
           }
           var done = ans.filter(function (a) { return a !== null; }).length;
           if (done === questions.length) {
@@ -202,14 +202,14 @@
         $('ggqResV').textContent = pass ? 'Passed' : 'Not Passed';
         $('ggqResMsg').innerHTML = pass
           ? 'Answered <strong>' + correct + ' of ' + questions.length + '</strong> correctly. Threshold met.'
-          : 'Answered <strong>' + correct + ' of ' + questions.length + '</strong> correctly. <strong>' + passingScore + '%</strong> required to continue.';
+          : 'Answered <strong>' + correct + ' of ' + questions.length + '</strong> correctly. <strong>' + requiredLabel + '</strong> required to continue.';
         setTimeout(function () { $('ggqResFill').style.width = pct + '%'; }, 60);
-        $('ggqResThr').textContent = 'threshold ' + passingScore + '%';
+        $('ggqResThr').textContent = 'threshold ' + requiredCorrect + '/' + questions.length;
         $('ggqResStats').innerHTML =
           stat(correct, 'CORRECT', 'pass') +
           stat(questions.length - correct, 'WRONG', 'fail') +
           stat(questions.length, 'TOTAL', 'neu') +
-          stat(passingScore + '%', 'REQUIRED', 'neu');
+          stat(requiredCorrect + '/' + questions.length, 'REQUIRED', 'neu');
 
         // Continue is offered when the learner may proceed.
         var mayContinue = pass || !requireToPass;

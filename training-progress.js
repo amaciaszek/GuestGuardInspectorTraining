@@ -2,6 +2,7 @@
   'use strict';
   const CFG = window.GG_PROGRESS_API || {};
   const STORE_KEY = 'gg-inspector-training-progress-v1';
+  const PORTAL_URL = `${window.GG_PORTAL_BASE || 'https://portal.guestguard.com'}/inspector-portal`;
   // Cloudflare serves module1.html at the canonical extensionless /module1 URL.
   // Recognize both forms so progress identity is stable locally and in production.
   const pageModule = Number((location.pathname.match(/module(\d+)(?:\.html)?(?:\/)?$/i) || [])[1] || 0);
@@ -9,9 +10,14 @@
   let activeKey = inferActiveKey();
   let lastSentAt = 0;
   let lastSavedAt = 0;
+  let authFailureReason = null;
 
   function readLocal() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (_) { return {}; } }
-  function saveLocal() { localStorage.setItem(STORE_KEY, JSON.stringify(state)); render(); }
+  function saveLocal() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    render();
+    setSaveState('Saved on this device', 'saved');
+  }
   function inferActiveKey() {
     if (pageModule === 1 || pageModule === 2) {
       const queryPart = Number(new URLSearchParams(location.search).get('ch'));
@@ -86,23 +92,54 @@
   function authenticated() {
     return Boolean(window.GGTraining && window.GGTraining.isAuthenticated && window.GGTraining.isAuthenticated());
   }
-  function renderAuthenticationWarning() {
+  function renderAuthenticationWarning(event) {
+    if (event && event.detail && event.detail.reason) authFailureReason = event.detail.reason;
     const existing = document.getElementById('gg-auth-warning');
     if (authenticated()) {
+      authFailureReason = null;
       if (existing) existing.remove();
       document.body.classList.remove('gg-has-auth-warning');
+      ensureSaveIndicator();
       return;
     }
     if (existing) return;
+    const saveIndicator = document.getElementById('gg-save-indicator');
+    if (saveIndicator) saveIndicator.remove();
+    const expired = authFailureReason === 'expired' || Boolean(localStorage.getItem('gg_access_token'));
     const warning = document.createElement('aside');
     warning.id = 'gg-auth-warning';
     warning.className = 'gg-auth-warning';
     warning.setAttribute('role', 'alert');
-    warning.setAttribute('aria-live', 'polite');
-    warning.innerHTML = '<span class="gg-auth-warning-icon" aria-hidden="true">!</span>' +
-      '<span><strong>You are not signed in.</strong> Your training progress is not being tracked or saved. Open this training from your signed-in GuestGuard portal to record progress.</span>';
+    warning.setAttribute('aria-live', 'assertive');
+    warning.innerHTML = '<div class="gg-auth-dialog">' +
+      '<span class="gg-auth-warning-icon" aria-hidden="true">!</span>' +
+      '<div class="gg-auth-eyebrow">SESSION REQUIRED</div>' +
+      '<h2>' + (expired ? 'Your training session has expired' : 'Sign in to continue training') + '</h2>' +
+      '<p>Your progress cannot be loaded or saved until you return through the GuestGuard Inspector Portal.</p>' +
+      '<a class="gg-auth-return" href="' + PORTAL_URL + '">Return to Inspector Portal</a>' +
+      '</div>';
     document.body.appendChild(warning);
     document.body.classList.add('gg-has-auth-warning');
+  }
+  function ensureSaveIndicator() {
+    if (!authenticated()) return null;
+    let indicator = document.getElementById('gg-save-indicator');
+    if (indicator) return indicator;
+    indicator = document.createElement('div');
+    indicator.id = 'gg-save-indicator';
+    indicator.className = 'gg-save-indicator is-saved';
+    indicator.setAttribute('role', 'status');
+    indicator.setAttribute('aria-live', 'polite');
+    indicator.innerHTML = '<span class="gg-save-icon" aria-hidden="true">✓</span><span class="gg-save-text">Progress autosaves</span>';
+    document.body.appendChild(indicator);
+    return indicator;
+  }
+  function setSaveState(message, stateName) {
+    const indicator = ensureSaveIndicator();
+    if (!indicator) return;
+    indicator.className = 'gg-save-indicator is-' + stateName;
+    indicator.querySelector('.gg-save-icon').textContent = stateName === 'saving' ? '↻' : (stateName === 'error' ? '!' : '✓');
+    indicator.querySelector('.gg-save-text').textContent = message;
   }
   function priorChaptersComplete(moduleId, chapter) {
     if (window.GGTester && window.GGTester.canUnlockNavigation()) return true;
@@ -110,7 +147,11 @@
     return true;
   }
   function enforcePageAccess() {
-    if (pageModule === 5 && (!authenticated() || !requiredLessonsComplete())) {
+    if (pageModule === 5 && !authenticated()) {
+      renderAuthenticationWarning();
+      return false;
+    }
+    if (pageModule === 5 && !requiredLessonsComplete()) {
       location.replace('index.html');
       return false;
     }
@@ -335,7 +376,14 @@
     setTimeout(render,1000);
   }
   document.addEventListener('gg:progressloaded', mergeAuthoritative);
-  document.addEventListener('gg:progresssaved', mergeAuthoritative);
+  document.addEventListener('gg:progresssaved', function (event) {
+    mergeAuthoritative(event);
+    setSaveState('Progress saved', 'saved');
+  });
+  document.addEventListener('gg:saving', function () { setSaveState('Saving progress…', 'saving'); });
+  document.addEventListener('gg:syncfailed', function () { setSaveState('Save interrupted - retrying later', 'error'); });
+  document.addEventListener('gg:localsaved', function () { setSaveState('Exam answers saved', 'saved'); });
+  document.addEventListener('gg:authrequired', renderAuthenticationWarning);
   document.addEventListener('gg:testermodechange', function () { render(); enforcePageAccess(); });
   document.addEventListener('gg:ready', renderAuthenticationWarning);
   document.addEventListener('gg:progressreset', function () {

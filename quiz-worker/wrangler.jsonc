@@ -6,7 +6,8 @@
   "compatibility_date": "2026-07-17",
   "vars": {
     "ALLOWED_ORIGINS": "http://localhost:8000,http://127.0.0.1:8000,https://inspector-training.guestguard.workers.dev",
-    "AUTH_VALIDATION_URL": "https://portal.guestguard.com/api/profiles/training-progress/inspector"
+    "AUTH_VALIDATION_URL": "https://guestguard-platform-git-dev-trai-82806e-egg-basket-technologies.vercel.app/api/profiles/training-progress/inspector",
+    "INSPECTOR_STATUS_URL": "https://guestguard-platform-git-dev-trai-82806e-egg-basket-technologies.vercel.app/api/profiles/inspector-status"
   },
   "d1_databases": [
     {

@@ -15,20 +15,21 @@ export default {
       if (identity.response) return identity.response;
       const payload = await readJson(request);
       if (!payload) return json({ error: 'Invalid JSON body' }, 400, cors);
-      return startAttempt(env, payload, identity.learnerId, cors);
+      return startAttempt(env, payload, identity, cors);
     }
     if (request.method === 'POST' && url.pathname === '/attempts/submit') {
       const identity = await authenticatedLearner(request, env, cors);
       if (identity.response) return identity.response;
       const payload = await readJson(request);
       if (!payload) return json({ error: 'Invalid JSON body' }, 400, cors);
-      return submitAttempt(env, payload, identity.learnerId, cors);
+      return submitAttempt(env, payload, identity, cors);
     }
     return json({ error: 'Not found' }, 404, cors);
   }
 };
 
-async function startAttempt(env, payload, learnerId, cors) {
+async function startAttempt(env, payload, identity, cors) {
+  const learnerId = identity.learnerId;
   const quizSeed = String(payload.quizSeed || '');
   if (!quizSeed) return json({ error: 'quizSeed is required' }, 400, cors);
 
@@ -43,7 +44,20 @@ async function startAttempt(env, payload, learnerId, cors) {
   const history = historyResult.results || [];
   if (history.some((attempt) => attempt.passed === 1)) {
     const passed = history.find((attempt) => attempt.passed === 1);
-    return json({ complete: true, passed: true, score: passed.score, total: passed.total, attemptsUsed: history.length, retakesRemaining: Math.max(0, MAX_ATTEMPTS - history.length) }, 200, cors);
+    // Healing path: if the original portal update was interrupted, every later
+    // visit retries the idempotent boolean update without creating a new attempt.
+    const completionSync = await syncPortalCompletion(env, identity.token);
+    return json({
+      complete: true,
+      passed: true,
+      score: passed.score,
+      total: passed.total,
+      attemptsUsed: history.length,
+      retakesRemaining: Math.max(0, MAX_ATTEMPTS - history.length),
+      completionSynced: completionSync.success,
+      completionTarget: completionSync.target || null,
+      completionStatus: completionSync.status || null
+    }, 200, cors);
   }
   if (history.length >= MAX_ATTEMPTS) return json({ complete: true, passed: false, exhausted: true, attemptsUsed: history.length, retakesRemaining: 0 }, 200, cors);
 
@@ -78,7 +92,8 @@ async function startAttempt(env, payload, learnerId, cors) {
   }, 201, cors);
 }
 
-async function submitAttempt(env, payload, learnerId, cors) {
+async function submitAttempt(env, payload, identity, cors) {
+  const learnerId = identity.learnerId;
   if (!payload.attemptId || !payload.answers || typeof payload.answers !== 'object' || Array.isArray(payload.answers)) {
     return json({ error: 'attemptId and answers are required' }, 400, cors);
   }
@@ -113,6 +128,12 @@ async function submitAttempt(env, payload, learnerId, cors) {
   await env.DB.prepare('INSERT INTO results (seed, user_id, score, total, passed, answers, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .bind(quiz.seed, learnerId, score, plan.length, passed ? 1 : 0, JSON.stringify(answers), now).run();
 
+  // D1 grading is authoritative for the exam. Only a newly claimed passing
+  // submission can trigger this privileged server-to-server portal update.
+  const completionSync = passed
+    ? await syncPortalCompletion(env, identity.token)
+    : { success: false };
+
   return json({
     attemptId: attempt.id,
     attemptNumber: attempt.attempt_number,
@@ -121,6 +142,9 @@ async function submitAttempt(env, payload, learnerId, cors) {
     percent,
     passed,
     passMark: quiz.pass_mark,
+    completionSynced: passed ? completionSync.success : null,
+    completionTarget: passed ? (completionSync.target || null) : null,
+    completionStatus: passed ? (completionSync.status || null) : null,
     missed: missed.map(({ id, number, text }) => ({ id, number, text })),
     retakesRemaining: passed ? Math.max(0, MAX_ATTEMPTS - attempt.attempt_number) : Math.max(0, MAX_ATTEMPTS - attempt.attempt_number),
     canRetake: !passed && attempt.attempt_number < MAX_ATTEMPTS
@@ -280,8 +304,7 @@ async function authenticatedLearner(request, env, cors) {
   try {
     validation = await fetch(validationUrl, {
       method: 'GET',
-      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
-      redirect: 'error'
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }
     });
   } catch (_) {
     return { response: json({ error: 'Authentication service unavailable' }, 503, cors) };
@@ -296,7 +319,42 @@ async function authenticatedLearner(request, env, cors) {
   const identity = `${claims.iss || 'guestguard'}:${String(subject)}`;
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
   const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return { learnerId: `portal:${hex}` };
+  return { learnerId: `portal:${hex}`, token };
+}
+
+export async function syncPortalCompletion(env, token) {
+  const secret = String(env.TRAINING_API_SECRET || '');
+  if (!secret) {
+    console.error('Portal completion sync is not configured');
+    return { success: false };
+  }
+
+  const statusUrl = String(env.INSPECTOR_STATUS_URL || 'https://portal.guestguard.com/api/profiles/inspector-status');
+  let target = statusUrl;
+  try { target = new URL(statusUrl).origin; } catch (_) {}
+  let lastStatus = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(statusUrl, {
+        method: 'POST',
+        redirect: 'error',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'X-Training-Api-Secret': secret
+        },
+        body: JSON.stringify({ inspector_training_complete: true })
+      });
+      lastStatus = response.status;
+      if (response.ok) return { success: true, target, status: response.status };
+      console.error(`Portal completion sync failed with status ${response.status}`);
+    } catch (_) {
+      console.error('Portal completion sync request failed');
+    }
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+  }
+  return { success: false, target, status: lastStatus };
 }
 
 function decodeJwtPayload(token) {

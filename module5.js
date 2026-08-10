@@ -62,6 +62,15 @@
       keepalive: !!(options && options.keepalive)
     }).then(function (response) {
       debug('API response', { path: path, status: response.status, ok: response.ok });
+      if (response.status === 401 || response.status === 403) {
+        if (window.GGTraining && window.GGTraining.clearAuth) window.GGTraining.clearAuth();
+        else {
+          localStorage.removeItem('gg_access_token');
+          localStorage.removeItem('gg_refresh_token');
+          localStorage.removeItem('gg_expires_at');
+        }
+        document.dispatchEvent(new CustomEvent('gg:authrequired', { detail: { reason: 'expired' } }));
+      }
       return response.json().then(function (data) {
         if (!response.ok) throw new Error(data.error || 'Request failed');
         return data;
@@ -77,6 +86,7 @@
     var key = draftKey();
     if (!key) return;
     localStorage.setItem(key, JSON.stringify(currentAnswers()));
+    document.dispatchEvent(new CustomEvent('gg:localsaved'));
   }
 
   function restoreDraft() {
@@ -112,7 +122,9 @@
     attemptFinalized = false;
     result.className = 'result';
     result.innerHTML = '';
-    document.getElementById('quizTitle').textContent = data.title || 'Knowledge Check';
+    var examTitle = data.title || 'Inspector Certification';
+    if (!/\bexam\b/i.test(examTitle)) examTitle += ' Exam';
+    document.getElementById('quizTitle').textContent = examTitle;
     attemptMeta.textContent = 'Attempt ' + data.attemptNumber + ' of 4 · ' + data.questionCount + ' questions · ' + data.retakesRemaining + ' retakes remaining';
     list.innerHTML = questions.map(function (question, index) {
       var headingId = 'quizQuestion' + (index + 1);
@@ -142,14 +154,53 @@
   }
 
   function showTerminal(data) {
+    if (data.passed) {
+      showCompletion(data);
+      return;
+    }
     attemptFinalized = true;
     status.hidden = true;
     list.hidden = true;
     document.getElementById('quizActions').hidden = true;
     count.textContent = 'Attempt history complete';
     result.className = 'result show' + (data.passed ? '' : ' fail');
-    result.innerHTML = '<h2>' + (data.passed ? 'Quiz already completed' : 'No retakes remaining') + '</h2><p>' +
-      (data.passed ? 'Your passing result is recorded.' : 'This test session has used the initial attempt and all three retakes.') + '</p>';
+    result.innerHTML = '<h2>No retakes remaining</h2><p>This exam session has used the initial attempt and all three retakes.</p>';
+  }
+
+  function showCompletion(data) {
+    attemptFinalized = true;
+    status.hidden = true;
+    list.hidden = true;
+    document.getElementById('quizActions').hidden = true;
+    form.hidden = true;
+    document.querySelector('.quiz-intro').hidden = true;
+    document.querySelector('.quiz-main > .progress').hidden = true;
+    count.textContent = 'Exam complete';
+    result.className = 'result show completion-screen' + (data.completionSynced === false ? ' sync-pending' : '');
+    var portalBase = window.GG_PORTAL_BASE || 'https://portal.guestguard.com';
+    var devReceipt = data.completionSynced && data.completionTarget
+      ? '<div class="completion-proof" role="status">' +
+        '<div class="completion-proof-icon" aria-hidden="true">✓</div>' +
+        '<div><div class="completion-proof-title">DEV SECRET HANDSHAKE ACCEPTED</div>' +
+        '<div><strong>Server route:</strong> Cloudflare training Worker → ' + escapeHtml(data.completionTarget) + '</div>' +
+        '<div><strong>Protected header:</strong> X-Training-Api-Secret (server-only; value hidden)</div>' +
+        '<div><strong>Dev API response:</strong> HTTP ' + escapeHtml(String(data.completionStatus || 'success')) + '</div>' +
+        '<div class="completion-proof-note">Brian’s dev API accepted the authenticated completion update. Verify inspector_training_complete = true in the dev database.</div></div></div>'
+      : '';
+    result.innerHTML = '<div class="completion-mark" aria-hidden="true">✓</div>' +
+      '<div class="eyebrow">CERTIFICATION EXAM COMPLETE</div>' +
+      '<h1>' + (data.completionSynced === false ? 'Exam passed - portal update pending' : 'You passed the certification exam') + '</h1>' +
+      (data.score != null && data.total != null ? '<p class="completion-score">' + data.score + ' / ' + data.total + ' correct</p>' : '') +
+      '<p>' + (data.completionSynced === false
+        ? 'Your passing exam result is safely recorded. We could not confirm the final portal update yet; use the button below to retry before returning.'
+        : 'Your result is recorded and your inspector training status has been sent to GuestGuard. Return to the Inspector Portal for your next steps.') + '</p>' +
+      devReceipt +
+      '<div class="completion-actions">' +
+        (data.completionSynced === false ? '<button type="button" class="secondary" id="completionRetry">Retry portal update</button>' : '') +
+        '<a class="portal-return" href="' + portalBase + '/inspector-portal">Open Dev Inspector Portal and verify status</a>' +
+      '</div>';
+    var retry = document.getElementById('completionRetry');
+    if (retry) retry.onclick = startAttempt;
   }
 
   function showError(message, error) {
@@ -160,7 +211,7 @@
   }
 
   function startAttempt() {
-    if (!api) return showError('Quiz API is not configured.');
+    if (!api) return showError('Exam API is not configured.');
     status.hidden = false;
     status.className = 'status';
     status.textContent = 'Preparing your seeded question set…';
@@ -227,14 +278,16 @@
       });
       result.className = 'result show' + (data.passed ? '' : ' fail');
       result.innerHTML = '<p class="result-score">' + data.score + ' / ' + data.total + '</p><h2>' +
-        (data.passed ? 'Quiz passed' : 'Attempt not passed') + '</h2><p>' + data.percent + '% · ' +
+        (data.passed ? 'Exam passed' : 'Attempt not passed') + '</h2><p>' + data.percent + '% · ' +
         data.passMark + '% required · ' + data.retakesRemaining + ' retakes remaining</p>' +
         missedMarkup(data.missed) +
         (data.canRetake ? '<button type="button" class="secondary" id="quizRetake">Start retake</button>' : '');
       result.scrollIntoView({ behavior: 'smooth', block: 'center' });
       list.hidden = true;
       document.getElementById('quizActions').hidden = true;
-      if (data.passed) setTrainingState();
+      if (data.passed) {
+        setTrainingState().finally(function () { showCompletion(data); });
+      }
       var retake = document.getElementById('quizRetake');
       if (retake) retake.onclick = startAttempt;
     }).catch(function (error) {
@@ -249,7 +302,6 @@
     if (!window.GGTraining || !window.GGTraining.markPartComplete) return Promise.resolve(false);
     return window.GGTraining.markPartComplete('5-1').then(function (saved) {
       if (saved) document.dispatchEvent(new CustomEvent('gg:quizcomplete', { detail: { itemId: '5-1' } }));
-      else showError('Your exam passed, but completion could not be synchronized. Please stay signed in and reload to try again.');
       return saved;
     });
   }

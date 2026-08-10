@@ -34,14 +34,30 @@
   // ===== Configuration =====================================================
   // Matches the host portal's shipped config.js. Note this is portal.* — the
   // value that actually went live — not the platform.* URL from the old email.
-  const API_BASE = 'https://portal.guestguard.com';
+  // Temporary integration-proof mode. Authentication, progress, and exam
+  // completion must all use the same portal environment or the test is invalid.
+  const PORTAL_ENV = 'development';
+  const API_BASE = 'https://guestguard-platform-git-dev-trai-82806e-egg-basket-technologies.vercel.app';
+  window.GG_PORTAL_ENV = PORTAL_ENV;
+  window.GG_PORTAL_BASE = API_BASE;
+
+  function showDevIntegrationBanner() {
+    if (PORTAL_ENV !== 'development' || document.getElementById('ggDevIntegrationBanner')) return;
+    const banner = document.createElement('aside');
+    banner.id = 'ggDevIntegrationBanner';
+    banner.setAttribute('role', 'status');
+    banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483647;padding:10px 14px;border:2px solid #f59e0b;border-radius:10px;background:#451a03;color:#fff7ed;font:700 13px/1.35 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4);text-align:center';
+    banner.textContent = 'DEV TEST MODE • Connected to Brian’s Vercel dev portal';
+    document.body.appendChild(banner);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showDevIntegrationBanner, { once: true });
+  else showDevIntegrationBanner();
 
   const ROUTES = {
     // Shared across host + inspector. Do not fork this one.
     exchangeToken: `${API_BASE}/api/auth/training/exchange-token`,
     // Inspector-specific mirrors of the host routes.
     progress: `${API_BASE}/api/profiles/training-progress/inspector`,
-    status: `${API_BASE}/api/profiles/inspector-status`,
   };
 
   const SERVER_RETRY_ATTEMPTS = 3;
@@ -51,10 +67,6 @@
   // learner advance on local state alone. Host does the same. Flip to false only
   // for local dev.
   const BLOCK_ON_SYNC_FAILURE = true;
-
-  // The inspector-status POST payload is NOT specified in anything Brian sent.
-  // Route + methods are known; field names are not. Left off until he confirms.
-  const POST_STATUS_ON_COMPLETE = false;
 
   const DEBUG = false;
   const log = (...a) => { if (DEBUG) console.log('[GG-API]', ...a); };
@@ -171,7 +183,7 @@
 
     async fetchWithAuth(url, options = {}) {
       if (!this.accessToken) throw new Error('Not authenticated');
-      return fetch(url, {
+      const response = await fetch(url, {
         mode: 'cors',
         credentials: 'omit',
         ...options,
@@ -181,6 +193,11 @@
           Authorization: `Bearer ${this.accessToken}`,
         },
       });
+      if (response.status === 401 || response.status === 403) {
+        this.clearAuth();
+        this.emit('gg:authrequired', { reason: 'expired' });
+      }
+      return response;
     },
 
     async fetchWithRetry(fn, operation = 'Operation') {
@@ -312,6 +329,8 @@
       log(`POST ${partKey} → section ${this.progress[partKey].currentSegment}/${total}` +
           ` | overall ${payload.training_progress.percentCompleted}%`);
 
+      this.emit('gg:saving', { partKey });
+
       const result = await this.fetchWithRetry(async () => {
         const res = await this.fetchWithAuth(ROUTES.progress, {
           method: 'POST',
@@ -331,45 +350,12 @@
           percent: this.overallPercent(),
         });
 
-        if (completed && this.isAllComplete() && POST_STATUS_ON_COMPLETE) {
-          await this.postStatus();
-        }
         return true;
       }
 
       err('Progress POST failed after all retries:', result.error);
       this.emit('gg:syncfailed', { partKey, error: result.error });
       return !BLOCK_ON_SYNC_FAILURE;
-    },
-
-    // ---------------------------------------------------------------------
-    // Status — route + methods are known; payload shape is NOT in Brian's spec.
-    // Wired but disabled (see POST_STATUS_ON_COMPLETE). Confirm fields first.
-    // ---------------------------------------------------------------------
-    async fetchStatus() {
-      if (!this.isAuthenticated()) return null;
-      const result = await this.fetchWithRetry(async () => {
-        const res = await this.fetchWithAuth(ROUTES.status, { method: 'GET' });
-        if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-        return res.json();
-      }, 'Status GET');
-      return result.success ? result.data : null;
-    },
-
-    async postStatus(body) {
-      if (!this.isAuthenticated()) return false;
-      // Placeholder shape — REPLACE once Brian confirms the field names.
-      const payload = body || { training_complete: true };
-      const result = await this.fetchWithRetry(async () => {
-        const res = await this.fetchWithAuth(ROUTES.status, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-        return res.json();
-      }, 'Status POST');
-      return result.success;
     },
 
     // ---------------------------------------------------------------------

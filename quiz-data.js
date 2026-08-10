@@ -34,7 +34,7 @@ window.GG_QUIZZES = {
 
     /* Chapter 1 — Welcome & Company (PDF: "Who GuestGuard Is & Your Role") */
     1: {
-      passingScore: 80,
+      passingScore: 75,
       questions: [
         {
           text: "How would you best describe GuestGuard's core mission?",
@@ -81,7 +81,7 @@ window.GG_QUIZZES = {
 
     /* Chapter 2 — Inspection Rubric (PDF: "The Inspection Framework") */
     2: {
-      passingScore: 80,
+      passingScore: 75,
       questions: [
         {
           text: "The rubric has 169 questions across 12 sections. Why doesn't that overwhelm you in practice?",
@@ -128,7 +128,7 @@ window.GG_QUIZZES = {
 
     /* Chapter 3 — Workflow & Platform (PDF: "How Inspections Work, Jobs & Getting Paid") */
     3: {
-      passingScore: 80,
+      passingScore: 75,
       questions: [
         {
           text: "What device does GuestGuard recommend for inspections, and why?",
@@ -179,7 +179,7 @@ window.GG_QUIZZES = {
 
     /* Chapter 1 — Intro & Outside (PDF: "Introduction & Exterior") */
     1: {
-      passingScore: 80,
+      passingScore: 75,
       questions: [
         {
           text: "For parking, what's the minimum clearance required on each side of a parked car, and who is it primarily for?",
@@ -224,7 +224,7 @@ window.GG_QUIZZES = {
 
     /* Chapter 2 — Basement & Kitchen (PDF: "Basement/Maintenance Room & Kitchen") */
     2: {
-      passingScore: 80,
+      passingScore: 75,
       questions: [
         {
           text: "Which wiring setup passes the standard check (applied in every room)?",
@@ -271,7 +271,7 @@ window.GG_QUIZZES = {
 
     /* Chapter 3 — Bathroom & Hallway (PDF: "Bathroom & Hallway") */
     3: {
-      passingScore: 80,
+      passingScore: 75,
       questions: [
         {
           text: "Is the bathroom accessibility assessment required on every inspection?",
@@ -314,7 +314,7 @@ window.GG_QUIZZES = {
 
     /* Chapter 4 — Bedroom (PDF: "Bedroom") */
     4: {
-      passingScore: 80,
+      passingScore: 75,
       questions: [
         {
           text: "When do you mark the escape-ladder item N/A?",
@@ -360,7 +360,7 @@ window.GG_QUIZZES = {
 
     /* Chapter 5 — Common Room & Overall (PDF: "Common Room, Overall & Wrap-up") */
     5: {
-      passingScore: 80,
+      passingScore: 75,
       questions: [
         {
           text: "What's the minimum Wi-Fi speed, and how does the module suggest testing it on-site?",

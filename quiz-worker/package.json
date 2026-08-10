@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node --test",
     "dev": "wrangler dev",
     "db:local": "wrangler d1 execute inspector-quiz-db --local --file=./schema.sql",
     "db:remote": "wrangler d1 execute inspector-quiz-db --remote --file=./schema.sql",
