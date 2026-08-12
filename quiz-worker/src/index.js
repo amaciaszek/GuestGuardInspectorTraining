@@ -10,23 +10,6 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
     const url = new URL(request.url);
-    if (request.method === 'POST' && url.pathname === '/tester/reset-exam') {
-      const identity = await authenticatedLearner(request, env, cors);
-      if (identity.response) return identity.response;
-      if (String(env.TESTER_RESETS_ENABLED || '').toLowerCase() !== 'true') {
-        return json({ error: 'Tester resets are disabled' }, 403, cors);
-      }
-      const payload = await readJson(request);
-      if (!payload || !payload.quizSeed) return json({ error: 'quizSeed is required' }, 400, cors);
-      const quizSeed = String(payload.quizSeed);
-      const quiz = await env.DB.prepare('SELECT seed FROM quizzes WHERE seed = ?').bind(quizSeed).first();
-      if (!quiz) return json({ error: 'Unknown quiz seed' }, 404, cors);
-      const operations = await env.DB.batch([
-        env.DB.prepare('DELETE FROM quiz_attempts WHERE learner_id = ? AND quiz_seed = ?').bind(identity.learnerId, quizSeed),
-        env.DB.prepare('DELETE FROM results WHERE user_id = ? AND seed = ?').bind(identity.learnerId, quizSeed)
-      ]);
-      return json({ reset: true, quizSeed, deletedAttempts: operations[0]?.meta?.changes || 0, deletedResults: operations[1]?.meta?.changes || 0 }, 200, cors);
-    }
     if (request.method === 'POST' && url.pathname === '/attempts/start') {
       const identity = await authenticatedLearner(request, env, cors);
       if (identity.response) return identity.response;
@@ -356,8 +339,6 @@ export async function syncPortalCompletion(env, token) {
     Authorization: `Bearer ${token}`,
     'X-Training-Api-Secret': secret
   };
-  const vercelBypass = String(env.VERCEL_PROTECTION_BYPASS || '');
-  if (vercelBypass) completionHeaders['x-vercel-protection-bypass'] = vercelBypass;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       const response = await fetch(statusUrl, {

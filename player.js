@@ -128,7 +128,7 @@ let ggProgN = 0;
 video.addEventListener('progress', function () { if ((ggProgN++ % 3) === 0) ggLog('progress'); });
 // Wait until the dynamically selected chapter source becomes current. Running
 // this immediately can HEAD the static fallback source instead of ?ch=N.
-video.addEventListener('loadedmetadata', ggDiagnose, { once: true });
+if (GG_LOAD_DEBUG) video.addEventListener('loadedmetadata', ggDiagnose, { once: true });
 
 // --- Prefetch the remaining clips, in order, once the current one is ready -
 // window.GG_PREFETCH is set per-module (the remaining parts' video URLs).
@@ -963,7 +963,7 @@ function alignTitleCardTriggersToCaptionPauses() {
   // boundaries after the safe card times have been calculated.
   CALLOUTS = normalizeCalloutsForTitleCards(GG_PLAYER.callouts);
   window.GG_TITLE_CARD_DIAGNOSTICS = adjustments;
-  if (adjustments.length > 0) {
+  if (GG_LOAD_DEBUG && adjustments.length > 0) {
     console.groupCollapsed('[GG timing] Title cards aligned before section narration');
     console.table(adjustments);
     console.groupEnd();
@@ -1143,7 +1143,20 @@ video.addEventListener('ended', () => {
 video.addEventListener('loadstart', () => { if (!video.paused) showSpinner(); });
 video.addEventListener('waiting', () => { showSpinner(); updateLoadingPercent(); });
 video.addEventListener('stalled', () => { if (!video.paused) showSpinner(); });
-video.addEventListener('seeking', () => { if (!video.paused) showSpinner(); });
+video.addEventListener('seeking', () => {
+  // Custom scrubber seeks are already clamped. This second boundary catches
+  // browser/native/programmatic forward seeks that bypass the scrubber.
+  if (!isSeeking && video.currentTime > maxWatched + 0.35) {
+    isSeeking = true;
+    video.currentTime = Math.max(0, maxWatched);
+    setTimeout(() => { isSeeking = false; }, 0);
+  }
+  if (!video.paused) showSpinner();
+});
+video.addEventListener('ratechange', () => {
+  if (video.playbackRate !== 1) video.playbackRate = 1;
+  if (video.defaultPlaybackRate !== 1) video.defaultPlaybackRate = 1;
+});
 video.addEventListener('progress', () => { if (vidLoading && vidLoading.classList.contains('show')) updateLoadingPercent(); });
 video.addEventListener('playing', hideSpinner);
 video.addEventListener('canplay', hideSpinner);
@@ -1192,11 +1205,8 @@ function seekToPosition(clientX) {
   const clickPct = Math.max(0, Math.min(1, clickX / scrubberRect.width));
   const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
   const requestedT = clickPct * safeDuration;
-  const targetT = window.GGTester && window.GGTester.canSkipVideos()
-    ? requestedT
-    : Math.min(requestedT, Math.min(safeDuration, maxWatched));
+  const targetT = Math.min(requestedT, Math.min(safeDuration, maxWatched));
   
-  // TESTING MODE: Allow seeking anywhere in the video
   isSeeking = true;
   subtitleResetBoundary = 0;
   video.currentTime = targetT;
@@ -1245,9 +1255,7 @@ scrubBar.addEventListener('keydown', (e) => {
   e.preventDefault();
   const safeDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : dur;
   const requested = e.key === 'Home' ? 0 : video.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
-  const target = window.GGTester && window.GGTester.canSkipVideos()
-    ? Math.max(0, Math.min(requested, safeDuration))
-    : Math.max(0, Math.min(requested, Math.min(safeDuration, maxWatched)));
+  const target = Math.max(0, Math.min(requested, Math.min(safeDuration, maxWatched)));
   subtitleResetBoundary = 0;
   video.currentTime = target;
   onT(target);

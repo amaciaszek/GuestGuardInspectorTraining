@@ -5,6 +5,7 @@
   var local = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:';
   var api = String(local ? cfg.localApiUrl : cfg.apiUrl || '').replace(/\/$/, '');
   var LOG = '[GG Quiz]';
+  var DEBUG = false;
   var DRAFT_PREFIX = 'gg-quiz-draft:';
 
   var form = document.getElementById('quizForm');
@@ -21,6 +22,7 @@
   var attemptFinalized = false;
 
   function debug(message, detail) {
+    if (!DEBUG) return;
     if (detail === undefined) console.info(LOG, message);
     else console.info(LOG, message, detail);
   }
@@ -147,10 +149,12 @@
       questionCount: questions.length,
       selectionMode: data.selectionMode
     });
-    console.groupCollapsed(LOG + ' Category selection diagnostics');
-    console.table(data.categoryCoverage || []);
-    console.info('Expected initial exam: 5 questions from each of 10 categories. Retakes vary based on missed-question categories.');
-    console.groupEnd();
+    if (DEBUG) {
+      console.groupCollapsed(LOG + ' Category selection diagnostics');
+      console.table(data.categoryCoverage || []);
+      console.info('Expected initial exam: 5 questions from each of 10 categories. Retakes vary based on missed-question categories.');
+      console.groupEnd();
+    }
   }
 
   function showTerminal(data) {
@@ -178,22 +182,11 @@
     count.textContent = 'Exam complete';
     result.className = 'result show completion-screen' + (data.completionSynced === false ? ' sync-pending' : '');
     var portalBase = window.GG_PORTAL_BASE || 'https://portal.guestguard.com';
-    var devReceipt = data.completionSynced && data.completionTarget
-      ? '<div class="completion-proof" role="status">' +
-        '<div class="completion-proof-icon" aria-hidden="true">✓</div>' +
-        '<div><div class="completion-proof-title">DEV SECRET HANDSHAKE ACCEPTED</div>' +
-        '<div><strong>Server route:</strong> Cloudflare training Worker → ' + escapeHtml(data.completionTarget) + '</div>' +
-        '<div><strong>Protected header:</strong> X-Training-Api-Secret (server-only; value hidden)</div>' +
-        '<div><strong>Dev API response:</strong> HTTP ' + escapeHtml(String(data.completionStatus || 'success')) + '</div>' +
-        '<div class="completion-proof-note">Brian’s dev API accepted the authenticated completion update. Verify inspector_training_complete = true in the dev database.</div></div></div>'
-      : '';
-    var devFailure = data.completionSynced === false && data.completionTarget
+    var syncFailure = data.completionSynced === false
       ? '<div class="completion-proof completion-proof-failed" role="alert">' +
         '<div class="completion-proof-icon" aria-hidden="true">!</div>' +
-        '<div><div class="completion-proof-title">DEV SECRET HANDSHAKE NOT ACCEPTED</div>' +
-        '<div><strong>Target:</strong> ' + escapeHtml(data.completionTarget) + '</div>' +
-        '<div><strong>Dev API result:</strong> ' + (data.completionStatus ? 'HTTP ' + escapeHtml(String(data.completionStatus)) : 'No HTTP response') + '</div>' +
-        '<div class="completion-proof-note">The exam passed, but Brian’s dev API did not accept the protected completion request. Check the dev secret configuration and whether the dev route accepts this authenticated portal user.</div></div></div>'
+        '<div><div class="completion-proof-title">PORTAL UPDATE NOT CONFIRMED</div>' +
+        '<div class="completion-proof-note">Your passing result is saved. Retry the GuestGuard status update before returning to the Inspector Portal.</div></div></div>'
       : '';
     result.innerHTML = '<div class="completion-mark" aria-hidden="true">✓</div>' +
       '<div class="eyebrow">CERTIFICATION EXAM COMPLETE</div>' +
@@ -202,10 +195,10 @@
       '<p>' + (data.completionSynced === false
         ? 'Your passing exam result is safely recorded. We could not confirm the final portal update yet; use the button below to retry before returning.'
         : 'Your result is recorded and your inspector training status has been sent to GuestGuard. Return to the Inspector Portal for your next steps.') + '</p>' +
-      devReceipt + devFailure +
+      syncFailure +
       '<div class="completion-actions">' +
         (data.completionSynced === false ? '<button type="button" class="secondary" id="completionRetry">Retry portal update</button>' : '') +
-        '<a class="portal-return" href="' + portalBase + '/inspector-portal">Open Dev Inspector Portal and verify status</a>' +
+        '<a class="portal-return" href="' + portalBase + '/inspector-portal">Return to Inspector Portal</a>' +
       '</div>';
     var retry = document.getElementById('completionRetry');
     if (retry) retry.onclick = startAttempt;
@@ -319,5 +312,11 @@
     quizSeed: cfg.seed,
     authenticated: !!token()
   });
-  startAttempt();
+  if (token()) {
+    startAttempt();
+  } else {
+    status.hidden = true;
+    list.hidden = true;
+    document.getElementById('quizActions').hidden = true;
+  }
 }());

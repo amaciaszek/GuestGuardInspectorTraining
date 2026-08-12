@@ -998,9 +998,7 @@ window.GG_PART_KEY = activeSection.key;
     var d = masterDur();
     if (!d) return;
     var requested = pct * d;
-    var t = window.GGTester && window.GGTester.canSkipVideos()
-      ? requested
-      : Math.min(requested, Math.min(d, maxWatched));
+    var t = Math.min(requested, Math.min(d, maxWatched));
     isSeeking = true;
     master.currentTime = t;
     syncSlave(true);
@@ -1016,9 +1014,7 @@ window.GG_PART_KEY = activeSection.key;
     var d = masterDur();
     if (!d) return;
     var requested = e.key === 'Home' ? 0 : master.currentTime + (e.key === 'ArrowLeft' ? -10 : 10);
-    var t = window.GGTester && window.GGTester.canSkipVideos()
-      ? Math.max(0, Math.min(requested, d))
-      : Math.max(0, Math.min(requested, Math.min(d, maxWatched)));
+    var t = Math.max(0, Math.min(requested, Math.min(d, maxWatched)));
     master.currentTime = t;
     syncSlave(true);
     render(t);
@@ -1073,7 +1069,25 @@ window.GG_PART_KEY = activeSection.key;
   // Spinner reflects the master's buffering state.
   master.addEventListener('waiting',  function () { if (started) showSpinner(); });
   master.addEventListener('stalled',  function () { if (started && !master.paused) showSpinner(); });
-  master.addEventListener('seeking',  function () { if (started && !master.paused) showSpinner(); });
+  master.addEventListener('seeking', function () {
+    // The visible scrubber is clamped above. Enforce the same boundary for
+    // browser/native/programmatic seeks that do not pass through it.
+    if (!isSeeking && master.currentTime > maxWatched + 0.35) {
+      isSeeking = true;
+      master.currentTime = Math.max(0, maxWatched);
+      syncSlave(true);
+      setTimeout(function () { isSeeking = false; }, 0);
+    }
+    if (started && !master.paused) showSpinner();
+  });
+  master.addEventListener('ratechange', function () {
+    if (master.playbackRate !== 1) master.playbackRate = 1;
+    if (master.defaultPlaybackRate !== 1) master.defaultPlaybackRate = 1;
+  });
+  slave.addEventListener('ratechange', function () {
+    if (slave.playbackRate !== 1) slave.playbackRate = 1;
+    if (slave.defaultPlaybackRate !== 1) slave.defaultPlaybackRate = 1;
+  });
   master.addEventListener('playing',  hideSpinner);
   master.addEventListener('canplay',  hideSpinner);
   master.addEventListener('canplaythrough', hideSpinner);
@@ -1112,8 +1126,7 @@ window.GG_PART_KEY = activeSection.key;
 
 <link rel="stylesheet" href="training-progress.css?v=launch-fixes-1">
 <script src="progress-config.js"></script>
-<script src="tester-tools.js?v=tester-tools-6"></script>
-<script src="training-api.js?v=no-dev-bar-1"></script>
+<script src="training-api.js?v=production-2"></script>
 <script src="training-progress.js?v=launch-fixes-1" defer></script>
 <script src="theme.js"></script>
   <script src="volume-controls.js?v=audible-default-1" defer></script>

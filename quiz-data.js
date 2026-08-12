@@ -185,11 +185,11 @@ window.GG_QUIZZES = {
           text: "For parking, what's the minimum clearance required on each side of a parked car, and who is it primarily for?",
           options: [
             "18 inches, for loading luggage",
-            "25 inches, for wheelchair users",
+            "24 inches, for wheelchair users",
             "30 inches, for any guest"
           ],
           correct: 1,
-          explanation: "Each side of a parked car needs at least 25 inches of clearance for wheelchair users, paired with the rule that parking be within 30 feet of the front door."
+          explanation: "Each side of a parked car needs at least 24 inches of clearance for wheelchair users, paired with the rule that parking be within 30 feet of the front door."
         },
         {
           text: "Why does the rubric have you flag overgrown shrubbery near the property?",

@@ -26,7 +26,7 @@ const PART_DURATIONS = {
   '4-4': 1,      // Hallway field walkthrough
   '4-5': 1,      // Bathroom field walkthrough
   '4-6': 1,      // Bedroom field walkthrough
-  '5-1': 1,      // Certification quiz (binary required completion)
+  '5-1': 1,      // Certification exam (binary required completion)
   // Module 3 is an optional reference library and is intentionally excluded.
 };
 

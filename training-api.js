@@ -6,8 +6,7 @@
 // changes and nothing else:
 //
 //   1. Progress routes point at /inspector instead of /host.
-//      (Per Brian: the pairs "function exactly the same ... they just modify
-//      separate fields in the database." Same methods, same payload shape.)
+//      Both routes use the same payload shape but update separate fields.
 //   2. Auth is UNCHANGED — exchange-token is explicitly shared across both
 //      portals, so this is the host code verbatim.
 //   3. Progress is LENGTH-WEIGHTED, not flat-per-section. The percentage comes
@@ -32,27 +31,11 @@
   'use strict';
 
   // ===== Configuration =====================================================
-  // Matches the host portal's shipped config.js. Note this is portal.* — the
-  // value that actually went live — not the platform.* URL from the old email.
-  // Authentication and progress remain on the main portal because it issues
-  // the one-time training token. Only the privileged completion POST is being
-  // tested against Brian's dev API by the server-side quiz Worker.
-  const PORTAL_ENV = 'production-auth-dev-completion';
+  // Production portal is the source of truth for authentication and progress.
+  const PORTAL_ENV = 'production';
   const API_BASE = 'https://portal.guestguard.com';
   window.GG_PORTAL_ENV = PORTAL_ENV;
   window.GG_PORTAL_BASE = API_BASE;
-
-  function showDevIntegrationBanner() {
-    if (PORTAL_ENV !== 'production-auth-dev-completion' || document.getElementById('ggDevIntegrationBanner')) return;
-    const banner = document.createElement('aside');
-    banner.id = 'ggDevIntegrationBanner';
-    banner.setAttribute('role', 'status');
-    banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483647;padding:10px 14px;border:2px solid #f59e0b;border-radius:10px;background:#451a03;color:#fff7ed;font:700 13px/1.35 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4);text-align:center';
-    banner.textContent = 'DEV COMPLETION TEST • Final status POST → Brian’s dev API';
-    document.body.appendChild(banner);
-  }
-  // The completion page itself displays server-confirmed dev handshake proof.
-  // Do not show a persistent site-wide dev banner.
 
   const ROUTES = {
     // Shared across host + inspector. Do not fork this one.
@@ -207,6 +190,9 @@
           return { success: true, data: await fn() };
         } catch (e) {
           err(`${operation} failed (attempt ${attempt}/${SERVER_RETRY_ATTEMPTS}):`, e.message);
+          if (/^(401|403)\b/.test(String(e && e.message || ''))) {
+            return { success: false, error: e.message };
+          }
           if (attempt < SERVER_RETRY_ATTEMPTS) {
             const delay = SERVER_RETRY_BASE_DELAY * Math.pow(2, attempt - 1);
             await new Promise(r => setTimeout(r, delay));
@@ -296,72 +282,6 @@
       const parts = Object.keys(window.PART_DURATIONS || {});
       if (!parts.length) return false;
       return parts.every(k => this.progress[k] && this.progress[k].completed);
-    },
-
-    // Tester-only destructive reset. The portal is authoritative, so deleting
-    // local storage alone is not a reset: the next GET restores the record.
-    // Write an empty record and read it back before clearing the browser copy.
-    async resetTrainingProgress() {
-      if (!this.isAuthenticated()) {
-        return { success: false, status: 401, error: 'Portal session is missing or expired.' };
-      }
-
-      const emptyProgress = {
-        modules: {},
-        complete_training: false,
-        percentCompleted: 0,
-        last_updated: new Date().toISOString(),
-      };
-
-      this.emit('gg:saving', { reset: true });
-
-      try {
-        const resetResponse = await this.fetchWithAuth(ROUTES.progress, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ training_progress: emptyProgress }),
-        });
-        if (!resetResponse.ok) {
-          const detail = await resetResponse.json().catch(() => ({}));
-          return {
-            success: false,
-            status: resetResponse.status,
-            error: detail.error || detail.message || `Portal reset returned HTTP ${resetResponse.status}.`,
-          };
-        }
-
-        const verifyResponse = await this.fetchWithAuth(ROUTES.progress, { method: 'GET' });
-        if (!verifyResponse.ok) {
-          return {
-            success: false,
-            status: verifyResponse.status,
-            error: `Portal reset verification returned HTTP ${verifyResponse.status}.`,
-          };
-        }
-
-        const verified = await verifyResponse.json();
-        const verifiedProgress = this.flattenServerProgress(verified.training_progress);
-        const stillRecorded = Object.values(verifiedProgress).some((part) =>
-          !!part.completed || Number(part.currentSegment || 0) > 0
-        );
-        if (stillRecorded) {
-          return {
-            success: false,
-            status: 409,
-            error: 'The portal returned progress after the reset, so nothing was cleared locally.',
-          };
-        }
-
-        this.progress = verifiedProgress;
-        this.emit('gg:progresssaved', { progress: this.progress, percent: 0, reset: true });
-        return { success: true, status: 200 };
-      } catch (error) {
-        return {
-          success: false,
-          status: this.isAuthenticated() ? null : 401,
-          error: error && error.message ? error.message : 'Portal reset request failed.',
-        };
-      }
     },
 
     // ---------------------------------------------------------------------
@@ -470,7 +390,11 @@
         if (tempToken) break;
       }
 
-      if (!this.isAuthenticated() && tempToken) {
+      // A portal-issued one-time token always represents the current entry
+      // session. Replace any locally cached bearer, even if its decoded expiry
+      // has not elapsed; it may be revoked or belong to a previous tester/user.
+      if (tempToken) {
+        this.clearAuth();
         await this.authenticateWithTempToken(tempToken);
       }
 
@@ -486,8 +410,6 @@
 
       if (this.isAuthenticated()) {
         await this.fetchProgress();
-      } else {
-        warn('No valid session. Progress will not be tracked this visit.');
       }
 
       this.ready = true;
